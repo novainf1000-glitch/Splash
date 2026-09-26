@@ -294,11 +294,29 @@ title.Parent = panel
 Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
 makeDrag(title, panel, false)
 
+-- ✅ ScrollingFrame bên trong panel
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, 0, 1, -35)
+scroll.Position = UDim2.new(0, 0, 0, 35)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 6
+scroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Parent = panel
+
+local scrollLayout = Instance.new("UIListLayout")
+scrollLayout.Padding = UDim.new(0, 4)
+scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+scrollLayout.Parent = scroll
+
+scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, scrollLayout.AbsoluteContentSize.Y + 10)
+end)
 local toggleRefs = {}
 local function toggle(key, y, cb)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1,-20,0,30)
-    b.Position = UDim2.new(0,10,0,y)
     b.BackgroundColor3 = Color3.fromRGB(40,40,40)
     b.Text = t(key) .. ": " .. t("off")
     b.TextColor3 = Color3.new(1,1,1)
@@ -306,9 +324,9 @@ local function toggle(key, y, cb)
     b.TextSize = 12
     b.AutoButtonColor = false
     b.BorderSizePixel = 0
-    b.Parent = panel
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
-    local active = false
+  b.Parent = scroll  -- ✅ Đổi panel → scroll
+Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+local active = false
     b.MouseButton1Click:Connect(function()
         active = not active
         b.BackgroundColor3 = active and Color3.fromRGB(60,60,60) or Color3.fromRGB(40,40,40)
@@ -347,10 +365,9 @@ end)
 end)
 
 -- ✅ Nút load script ngoài
-local function createScriptBtn(name, y, url)
+local function createScriptBtn(name, url)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1,-20,0,28)
-    b.Position = UDim2.new(0,10,0,y)
+    b.Size = UDim2.new(1, 0, 0, 28)
     b.BackgroundColor3 = Color3.fromRGB(50,80,180)
     b.Text = name
     b.TextColor3 = Color3.new(1,1,1)
@@ -358,7 +375,7 @@ local function createScriptBtn(name, y, url)
     b.TextSize = 12
     b.AutoButtonColor = false
     b.BorderSizePixel = 0
-    b.Parent = panel
+    b.Parent = scroll
     Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
     b.MouseButton1Click:Connect(function()
         pcall(function()
@@ -371,20 +388,35 @@ local function createScriptBtn(name, y, url)
     return b
 end
 
-createScriptBtn("🚀 Fly", 184, "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
-createScriptBtn("👻 Invisible", 216, "https://pastebin.com/raw/3Rnd9rHf")
-createScriptBtn("💥 Fling", 248, "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
+createScriptBtn("🚀 Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
+createScriptBtn("👻 Invisible", "https://pastebin.com/raw/3Rnd9rHf")
+createScriptBtn("💥 Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
 local langLabel = Instance.new("TextLabel")
-langLabel.Size = UDim2.new(1,-20,0,18)
-langLabel.Position = UDim2.new(0,10,0,288)
+langLabel.Size = UDim2.new(1, 0, 0, 18)
 langLabel.BackgroundTransparency = 1
 langLabel.Text = "🌐 " .. t("lang") .. ": English"
 langLabel.TextColor3 = Color3.fromRGB(200,200,200)
 langLabel.Font = Enum.Font.GothamBold
 langLabel.TextSize = 11
 langLabel.TextXAlignment = Enum.TextXAlignment.Left
-langLabel.Parent = panel
+langLabel.Parent = scroll
+
+local currentLang = "en"
+local langList = {"en", "vi", "pt", "es"}
+local langNames = {en = "English", vi = "Tiếng Việt", pt = "Português", es = "Español"}
+
+local langBtn = Instance.new("TextButton")
+langBtn.Size = UDim2.new(1, 0, 0, 28)
+langBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+langBtn.Text = "English"
+langBtn.TextColor3 = Color3.new(1,1,1)
+langBtn.Font = Enum.Font.GothamBold
+langBtn.TextSize = 12
+langBtn.AutoButtonColor = false
+langBtn.BorderSizePixel = 0
+langBtn.Parent = scroll
+Instance.new("UICorner", langBtn).CornerRadius = UDim.new(0,6)
 
 local currentLang = "en"
 local langList = {"en", "vi", "pt", "es"}
@@ -428,43 +460,53 @@ langBtn.MouseButton1Click:Connect(function()
     applyLang()
 end)
 
-local function slider(name, min, max, def, y, cb)
+local function slider(name, min, max, def, cb)
+    -- Container
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 42)
+    container.BackgroundTransparency = 1
+    container.Parent = scroll
+
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1,-20,0,18)
-    lbl.Position = UDim2.new(0,10,0,y)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.Position = UDim2.new(0, 0, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = name .. ": " .. def
     lbl.TextColor3 = Color3.fromRGB(200,200,200)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = panel
+    lbl.Parent = container
+
     local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1,-20,0,12)
-    bar.Position = UDim2.new(0,10,0,y+20)
+    bar.Size = UDim2.new(1, 0, 0, 12)
+    bar.Position = UDim2.new(0, 0, 0, 24)
     bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    bar.Parent = panel
+    bar.Parent = container
     Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
+
     local rel0 = (def-min)/(max-min)
     local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(rel0,0,1,0)
+    fill.Size = UDim2.new(rel0, 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0,170,255)
     fill.Parent = bar
     Instance.new("UICorner", fill).CornerRadius = UDim.new(0,6)
+
     local th = Instance.new("Frame")
-    th.Size = UDim2.new(0,16,0,16)
-    th.AnchorPoint = Vector2.new(0.5,0.5)
-    th.Position = UDim2.new(rel0,0,0.5,0)
+    th.Size = UDim2.new(0, 16, 0, 16)
+    th.AnchorPoint = Vector2.new(0.5, 0.5)
+    th.Position = UDim2.new(rel0, 0, 0.5, 0)
     th.BackgroundColor3 = Color3.fromRGB(220,220,220)
     th.Parent = bar
     Instance.new("UICorner", th).CornerRadius = UDim.new(1,0)
+
     local drag = false
     local function set(v)
         v = math.clamp(v, min, max)
         lbl.Text = name .. ": " .. math.floor(v)
         local r = (v-min)/(max-min)
-        fill.Size = UDim2.new(r,0,1,0)
-        th.Position = UDim2.new(r,0,0.5,0)
+        fill.Size = UDim2.new(r, 0, 1, 0)
+        th.Position = UDim2.new(r, 0, 0.5, 0)
         cb(v)
     end
     local function upd(i)
@@ -484,11 +526,12 @@ local function slider(name, min, max, def, y, cb)
     end)
 end
 
-slider("⚡ " .. t("speed"), 0, 5, 1, 344, function(v)
+-- ✅ Slider KHÔNG cần y nữa — tự sắp xếp
+slider("⚡ " .. t("speed"), 0, 5, 1, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
 end)
-slider("🏃 " .. t("walkspeed"), 0, 1000, 16, 402, function(v)
+slider("🏃 " .. t("walkspeed"), 0, 1000, 16, function(v)
     Settings.WalkSpeed = math.floor(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
@@ -512,6 +555,11 @@ sBtn.TextSize = 18
 sBtn.AutoButtonColor = false
 sBtn.BorderSizePixel = 0
 sBtn.Parent = sFrame
+Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
+local isSClick = makeDrag(sBtn, sFrame, false)
+sBtn.MouseButton1Click:Connect(function()
+    if isSClick() then panel.Visible = not panel.Visible end
+end)
 Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
 local isSClick = makeDrag(sBtn, sFrame, false)
 sBtn.MouseButton1Click:Connect(function()
