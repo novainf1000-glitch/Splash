@@ -1,0 +1,490 @@
+--[[ FILE 2: MAIN SCRIPT ]]
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+
+local Lang = {
+    en = {settings="Settings", lock="Lock", antifling="AntiFling", hidebtn="Hide Btn", delmode="Delete Mode", speed="Anim Speed", walkspeed="Walk Speed", lang="Language", on="ON", off="OFF",
+        btns={spin="Spin", slap="Slap", dropkick="Drop kick", backkick="Back kick", superspin="Super Spin Kick", superpunch="Super Punch", somersault="Somersault", mma="MMA kick", daphanluc="Rocket Kick", dax3="Triple Kick", cumoc="Hook Kick", slash="Slash"}},
+    vi = {settings="Cài đặt", lock="Khóa", antifling="Chống Fling", hidebtn="Ẩn nút", delmode="Xóa nút", speed="Tốc độ Anim", walkspeed="Tốc chạy", lang="Ngôn ngữ", on="BẬT", off="TẮT",
+        btns={spin="Xoay", slap="Tát", dropkick="Đá rơi", backkick="Đá sau", superspin="Siêu Xoay", superpunch="Siêu Đấm", somersault="Nhào lộn", mma="MMA", daphanluc="Đá phản lực", dax3="Đá 3 lần", cumoc="Cú móc", slash="Chém"}},
+    pt = {settings="Configurações", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Excluir", speed="Vel. Anim", walkspeed="Vel. Corrida", lang="Idioma", on="LIGADO", off="DESLIGADO",
+        btns={spin="Girar", slap="Bofetada", dropkick="Chute Queda", backkick="Chute Trás", superspin="Super Giro", superpunch="Super Soco", somersault="Cambalhota", mma="MMA", daphanluc="Chute Foguete", dax3="Chute Triplo", cumoc="Gancho", slash="Corte"}},
+    es = {settings="Configuración", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Eliminar", speed="Vel. Anim", walkspeed="Vel. Correr", lang="Idioma", on="ACTIVADO", off="DESACTIVADO",
+        btns={spin="Girar", slap="Bofetada", dropkick="Patada Caída", backkick="Patada Atrás", superspin="Súper Giro", superpunch="Súper Puño", somersault="Voltereta", mma="MMA", daphanluc="Patada Cohete", dax3="Patada Triple", cumoc="Gancho", slash="Corte"}},
+}
+
+local Settings = {Speed = 1, Locked = false, WalkSpeed = 16, Language = "en", HideMode = false, DeleteMode = false}
+local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
+local idCache = {}
+local allBtns = {}
+local markedBtns = {}
+
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+player.CharacterAdded:Connect(function(c)
+    char = c
+    hum = c:WaitForChild("Humanoid")
+    task.wait(0.5)
+    hum.WalkSpeed = Settings.WalkSpeed
+end)
+
+local function t(key)
+    local lang = Lang[Settings.Language] or Lang.en
+    return lang[key] or key
+end
+local function tBtn(key)
+    local lang = Lang[Settings.Language] or Lang.en
+    return lang.btns[key] or key
+end
+
+local function getAnimator()
+    if not hum then return nil end
+    local a = hum:FindFirstChildOfClass("Animator")
+    if not a then a = Instance.new("Animator") a.Parent = hum end
+    return a
+end
+
+local function getAnimId(id)
+    if idCache[id] then return idCache[id] end
+    local animId = "rbxassetid://" .. tostring(id)
+    local ok, result = pcall(function() return game:GetObjects(animId) end)
+    if ok and result and #result > 0 and result[1]:IsA("Animation") then
+        animId = result[1].AnimationId
+    end
+    idCache[id] = animId
+    return animId
+end
+
+local function LoadTrack(id)
+    local a = getAnimator()
+    if not a then return nil end
+    if CurrentTrack then pcall(function() CurrentTrack:Stop(0) end) CurrentTrack = nil end
+    local animId = getAnimId(id)
+    local anim = Instance.new("Animation")
+    anim.AnimationId = animId
+    local ok2, track = pcall(function() return a:LoadAnimation(anim) end)
+    if not ok2 or not track then return nil end
+    track.Priority = Enum.AnimationPriority.Action4
+    track.Looped = false
+    pcall(function() track:Play(0.1, 1, Settings.Speed) end)
+    CurrentTrack = track
+    return track
+end
+
+local function StopTrack()
+    if CurrentTrack then pcall(function() CurrentTrack:Stop(0.1) end) CurrentTrack = nil end
+    IsPlaying = false
+end
+
+local AFLConn = nil
+local function AFStart()
+    if AFLConn then return end
+    AFLConn = RunService.Heartbeat:Connect(function()
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local o = p.Character:FindFirstChild("HumanoidRootPart")
+                if o then pcall(function()
+                    o.CustomPhysicalProperties = PhysicalProperties.new(0,0,0,0,0)
+                    o.Velocity = Vector3.new(0, o.Velocity.Y, 0)
+                    o.RotVelocity = Vector3.new(0,0,0)
+                end) end
+            end
+        end
+    end)
+end
+local function AFStop()
+    if AFLConn then AFLConn:Disconnect() AFLConn = nil end
+end
+
+local sg = Instance.new("ScreenGui")
+sg.Name = "AnimGui"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.Parent = CoreGui
+
+local function makeDrag(btn, frame, respectLock)
+    local drag, s, sp, moved = false, nil, nil, false
+    btn.InputBegan:Connect(function(i)
+        moved = false
+        if respectLock and Settings.Locked then return end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true s = i.Position sp = frame.Position
+            local c c = i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then drag = false if c then c:Disconnect() end end
+            end)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if not drag then return end
+        if respectLock and Settings.Locked then drag = false return end
+        if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+            local d = i.Position - s
+            if math.abs(d.X) > 3 or math.abs(d.Y) > 3 then moved = true end
+            if moved then frame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            task.delay(0.05, function() drag = false end)
+        end
+    end)
+    return function() return not moved end
+end
+
+local function createBtn(key, pos, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, 94, 0, 28)
+    f.Position = pos
+    f.BackgroundColor3 = Color3.new(0,0,0)
+    f.BorderSizePixel = 0
+    f.Active = true
+    f.Parent = sg
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,6)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 50, 50)
+    stroke.Thickness = 2
+    stroke.Enabled = false
+    stroke.Name = "RedStroke"
+    stroke.Parent = f
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,0,1,0)
+    b.BackgroundColor3 = Color3.new(0,0,0)
+    b.Text = tBtn(key)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 10
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    local xMark = Instance.new("TextLabel")
+    xMark.Size = UDim2.new(1,0,1,0)
+    xMark.BackgroundTransparency = 1
+    xMark.Text = "✕"
+    xMark.TextColor3 = Color3.fromRGB(255, 50, 50)
+    xMark.TextStrokeTransparency = 0
+    xMark.TextStrokeColor3 = Color3.new(0,0,0)
+    xMark.Font = Enum.Font.GothamBold
+    xMark.TextSize = 20
+    xMark.Visible = false
+    xMark.Name = "XMark"
+    xMark.ZIndex = 5
+    xMark.Parent = f
+    local isClick = makeDrag(b, f, true)
+    local marked = false
+    b.MouseButton1Click:Connect(function()
+        if Settings.DeleteMode then
+            marked = not marked
+            xMark.Visible = marked
+            if marked then
+                local exists = false
+                for _, m in pairs(markedBtns) do
+                    if m == f then exists = true break end
+                end
+                if not exists then table.insert(markedBtns, f) end
+            else
+                for i, m in pairs(markedBtns) do
+                    if m == f then table.remove(markedBtns, i) break end
+                end
+            end
+            return
+        end
+        if not isClick() then return end
+        if ActiveButton == b and IsPlaying then
+            StopTrack() ActiveButton = nil
+            TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
+        else
+            StopTrack()
+            local tr = LoadTrack(id)
+            if tr then
+                IsPlaying = true ActiveButton = b
+                TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(60,60,60)}):Play()
+                tr.Stopped:Connect(function()
+                    if ActiveButton == b then
+                        IsPlaying = false ActiveButton = nil
+                        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
+                    end
+                end)
+            end
+        end
+    end)
+    table.insert(allBtns, {frame = f, btn = b, key = key})
+    return b
+end
+
+createBtn("spin", UDim2.new(0.5,-150,0,20), 133180711707319)
+createBtn("slap", UDim2.new(0.5,-47,0,20), 118273721275238)
+createBtn("dropkick", UDim2.new(0.5,56,0,20), 122990265693059)
+createBtn("backkick", UDim2.new(0.5,-150,0,52), 90161679204210)
+createBtn("superspin", UDim2.new(0.5,-47,0,52), 88814172353660)
+createBtn("superpunch", UDim2.new(0.5,56,0,52), 129850328316768)
+createBtn("somersault", UDim2.new(0.5,-150,0,84), 77072646896519)
+createBtn("mma", UDim2.new(0.5,-47,0,84), 112687071860501)
+createBtn("daphanluc", UDim2.new(0.5,56,0,84), 98481111917153)
+createBtn("dax3", UDim2.new(0.5,-150,0,116), 107652660092239)
+createBtn("cumoc", UDim2.new(0.5,-47,0,116), 96853318026158)
+createBtn("slash", UDim2.new(0.5,56,0,116), 82407225122935)
+
+-- Nút xóa 🗑️
+local delFrame = Instance.new("Frame")
+delFrame.Size = UDim2.new(0, 40, 0, 40)
+delFrame.Position = UDim2.new(1, -55, 1, -60)
+delFrame.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+delFrame.BorderSizePixel = 0
+delFrame.Active = true
+delFrame.Visible = false
+delFrame.Name = "DeleteAllBtn"
+delFrame.Parent = sg
+Instance.new("UICorner", delFrame).CornerRadius = UDim.new(0, 8)
+local delBtn = Instance.new("TextButton")
+delBtn.Size = UDim2.new(1,0,1,0)
+delBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+delBtn.Text = "🗑️"
+delBtn.TextColor3 = Color3.new(1,1,1)
+delBtn.Font = Enum.Font.GothamBold
+delBtn.TextSize = 22
+delBtn.AutoButtonColor = false
+delBtn.BorderSizePixel = 0
+delBtn.Parent = delFrame
+Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 8)
+delBtn.MouseButton1Click:Connect(function()
+    local count = #markedBtns
+    for _, f in pairs(markedBtns) do
+        if f and f.Parent then
+            for i, ref in pairs(allBtns) do
+                if ref.frame == f then table.remove(allBtns, i) break end
+            end
+            f:Destroy()
+        end
+    end
+    markedBtns = {}
+    StarterGui:SetCore("SendNotification", {
+        Title = "🗑️ Deleted",
+        Text = count .. " buttons removed",
+        Duration = 3
+    })
+end)
+
+-- Settings panel
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0, 260, 0, 400)
+panel.Position = UDim2.new(1, -270, 0, 100)
+panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+panel.BorderSizePixel = 0
+panel.Visible = false
+panel.Active = true
+panel.Parent = sg
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextButton")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundColor3 = Color3.fromRGB(40,40,40)
+title.Text = "⚙️ " .. t("settings")
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.AutoButtonColor = false
+title.BorderSizePixel = 0
+title.Parent = panel
+Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
+makeDrag(title, panel, false)
+
+local toggleRefs = {}
+local function toggle(key, y, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-20,0,30)
+    b.Position = UDim2.new(0,10,0,y)
+    b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    b.Text = t(key) .. ": " .. t("off")
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = panel
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    local active = false
+    b.MouseButton1Click:Connect(function()
+        active = not active
+        b.BackgroundColor3 = active and Color3.fromRGB(60,60,60) or Color3.fromRGB(40,40,40)
+        b.Text = t(key) .. ": " .. (active and t("on") or t("off"))
+        cb(b, active)
+    end)
+    toggleRefs[key] = {btn = b, isActive = function() return active end}
+    return b
+end
+
+toggle("lock", 38, function(b, a)
+    Settings.Locked = a
+    if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
+end)
+toggle("antifling", 74, function(b, a)
+    if a then AFStart() else AFStop() end
+end)
+toggle("hidebtn", 110, function(b, a)
+    Settings.HideMode = a
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then ref.frame.Visible = not a end
+    end
+    if a then b.BackgroundColor3 = Color3.fromRGB(255,170,0) end
+end)
+toggle("delmode", 146, function(b, a)
+    Settings.DeleteMode = a
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then
+            local stroke = ref.frame:FindFirstChild("RedStroke")
+            if stroke then stroke.Enabled = a end
+            if a then ref.frame.Visible = true end
+        end
+    end
+    delFrame.Visible = a
+    if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
+end)
+
+local langLabel = Instance.new("TextLabel")
+langLabel.Size = UDim2.new(1,-20,0,18)
+langLabel.Position = UDim2.new(0,10,0,184)
+langLabel.BackgroundTransparency = 1
+langLabel.Text = "🌐 " .. t("lang") .. ": English"
+langLabel.TextColor3 = Color3.fromRGB(200,200,200)
+langLabel.Font = Enum.Font.GothamBold
+langLabel.TextSize = 11
+langLabel.TextXAlignment = Enum.TextXAlignment.Left
+langLabel.Parent = panel
+
+local currentLang = "en"
+local langList = {"en", "vi", "pt", "es"}
+local langNames = {en = "English", vi = "Tiếng Việt", pt = "Português", es = "Español"}
+
+local langBtn = Instance.new("TextButton")
+langBtn.Size = UDim2.new(1,-20,0,28)
+langBtn.Position = UDim2.new(0,10,0,206)
+langBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+langBtn.Text = "English"
+langBtn.TextColor3 = Color3.new(1,1,1)
+langBtn.Font = Enum.Font.GothamBold
+langBtn.TextSize = 12
+langBtn.AutoButtonColor = false
+langBtn.BorderSizePixel = 0
+langBtn.Parent = panel
+Instance.new("UICorner", langBtn).CornerRadius = UDim.new(0,6)
+
+local function applyLang()
+    title.Text = "⚙️ " .. t("settings")
+    langLabel.Text = "🌐 " .. t("lang") .. ": " .. langNames[currentLang]
+    langBtn.Text = langNames[currentLang]
+    for key, ref in pairs(toggleRefs) do
+        local isOn = ref.isActive()
+        ref.btn.Text = t(key) .. ": " .. (isOn and t("on") or t("off"))
+    end
+    for _, ref in pairs(allBtns) do
+        if ref.btn and ref.btn.Parent then ref.btn.Text = tBtn(ref.key) end
+    end
+end
+
+langBtn.MouseButton1Click:Connect(function()
+    local idx = 1
+    for i, l in ipairs(langList) do
+        if l == currentLang then idx = i break end
+    end
+    idx = idx + 1
+    if idx > #langList then idx = 1 end
+    currentLang = langList[idx]
+    Settings.Language = currentLang
+    applyLang()
+end)
+
+local function slider(name, min, max, def, y, cb)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1,-20,0,18)
+    lbl.Position = UDim2.new(0,10,0,y)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name .. ": " .. def
+    lbl.TextColor3 = Color3.fromRGB(200,200,200)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = panel
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1,-20,0,12)
+    bar.Position = UDim2.new(0,10,0,y+20)
+    bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    bar.Parent = panel
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
+    local rel0 = (def-min)/(max-min)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(rel0,0,1,0)
+    fill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0,6)
+    local th = Instance.new("Frame")
+    th.Size = UDim2.new(0,16,0,16)
+    th.AnchorPoint = Vector2.new(0.5,0.5)
+    th.Position = UDim2.new(rel0,0,0.5,0)
+    th.BackgroundColor3 = Color3.fromRGB(220,220,220)
+    th.Parent = bar
+    Instance.new("UICorner", th).CornerRadius = UDim.new(1,0)
+    local drag = false
+    local function set(v)
+        v = math.clamp(v, min, max)
+        lbl.Text = name .. ": " .. math.floor(v)
+        local r = (v-min)/(max-min)
+        fill.Size = UDim2.new(r,0,1,0)
+        th.Position = UDim2.new(r,0,0.5,0)
+        cb(v)
+    end
+    local function upd(i)
+        local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        set(min + (max-min) * r)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true upd(i)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end
+    end)
+end
+
+slider("⚡ " .. t("speed"), 0, 5, 1, 240, function(v)
+    Settings.Speed = v
+    if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
+end)
+slider("🏃 " .. t("walkspeed"), 0, 1000, 16, 298, function(v)
+    Settings.WalkSpeed = math.floor(v)
+    if hum then hum.WalkSpeed = math.floor(v) end
+end)
+
+-- Settings button
+local sFrame = Instance.new("Frame")
+sFrame.Size = UDim2.new(0,32,0,32)
+sFrame.Position = UDim2.new(1,-45,0,15)
+sFrame.BackgroundColor3 = Color3.new(0,0,0)
+sFrame.BorderSizePixel = 0
+sFrame.Active = true
+sFrame.Parent = sg
+Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0,8)
+local sBtn = Instance.new("TextButton")
+sBtn.Size = UDim2.new(1,0,1,0)
+sBtn.BackgroundColor3 = Color3.new(0,0,0)
+sBtn.Text = "⚙"
+sBtn.TextColor3 = Color3.new(1,1,1)
+sBtn.Font = Enum.Font.GothamBold
+sBtn.TextSize = 18
+sBtn.AutoButtonColor = false
+sBtn.BorderSizePixel = 0
+sBtn.Parent = sFrame
+Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
+local isSClick = makeDrag(sBtn, sFrame, false)
+sBtn.MouseButton1Click:Connect(function()
+    if isSClick() then panel.Visible = not panel.Visible end
+end)
