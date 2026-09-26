@@ -272,7 +272,7 @@ end)
 
 -- Settings panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 260, 0, 400)
+panel.Size = UDim2.new(0, 260, 0, 520)
 panel.Position = UDim2.new(1, -270, 0, 100)
 panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
 panel.BorderSizePixel = 0
@@ -333,7 +333,7 @@ toggle("hidebtn", 110, function(b, a)
     end
     if a then b.BackgroundColor3 = Color3.fromRGB(255,170,0) end
 end)
-toggle("delmode", 146, function(b, a)
+ toggle("delmode", 146, function(b, a)
     Settings.DeleteMode = a
     for _, ref in pairs(allBtns) do
         if ref.frame and ref.frame.Parent then
@@ -346,9 +346,38 @@ toggle("delmode", 146, function(b, a)
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
 
+-- ✅ Nút load script ngoài
+local function createScriptBtn(name, y, url)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-20,0,28)
+    b.Position = UDim2.new(0,10,0,y)
+    b.BackgroundColor3 = Color3.fromRGB(50,80,180)
+    b.Text = name
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = panel
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    b.MouseButton1Click:Connect(function()
+        pcall(function()
+            loadstring(game:HttpGet(url))()
+        end)
+        b.Text = name .. " ✓"
+        task.wait(1)
+        b.Text = name
+    end)
+    return b
+end
+
+createScriptBtn("🚀 Fly", 184, "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
+createScriptBtn("👻 Invisible", 216, "https://pastebin.com/raw/3Rnd9rHf")
+createScriptBtn("💥 Fling", 248, "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
+
 local langLabel = Instance.new("TextLabel")
 langLabel.Size = UDim2.new(1,-20,0,18)
-langLabel.Position = UDim2.new(0,10,0,184)
+langLabel.Position = UDim2.new(0,10,0,288)
 langLabel.BackgroundTransparency = 1
 langLabel.Text = "🌐 " .. t("lang") .. ": English"
 langLabel.TextColor3 = Color3.fromRGB(200,200,200)
@@ -363,7 +392,7 @@ local langNames = {en = "English", vi = "Tiếng Việt", pt = "Português", es 
 
 local langBtn = Instance.new("TextButton")
 langBtn.Size = UDim2.new(1,-20,0,28)
-langBtn.Position = UDim2.new(0,10,0,206)
+langBtn.Position = UDim2.new(0,10,0,310)
 langBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 langBtn.Text = "English"
 langBtn.TextColor3 = Color3.new(1,1,1)
@@ -455,11 +484,11 @@ local function slider(name, min, max, def, y, cb)
     end)
 end
 
-slider("⚡ " .. t("speed"), 0, 5, 1, 240, function(v)
+slider("⚡ " .. t("speed"), 0, 5, 1, 344, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
 end)
-slider("🏃 " .. t("walkspeed"), 0, 1000, 16, 298, function(v)
+slider("🏃 " .. t("walkspeed"), 0, 1000, 16, 402, function(v)
     Settings.WalkSpeed = math.floor(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
