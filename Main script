@@ -272,8 +272,8 @@ end)
 
 -- Settings panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 260, 0, 520)
-panel.Position = UDim2.new(1, -270, 0, 100)
+panel.Size = UDim2.new(0, 280, 0, 320)
+panel.Position = UDim2.new(1, -290, 0, 100)
 panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
 panel.BorderSizePixel = 0
 panel.Visible = false
@@ -294,10 +294,10 @@ title.Parent = panel
 Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
 makeDrag(title, panel, false)
 
--- ✅ ScrollingFrame bên trong panel
+-- ScrollingFrame
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, 0, 1, -35)
-scroll.Position = UDim2.new(0, 0, 0, 35)
+scroll.Size = UDim2.new(1, -10, 1, -40)
+scroll.Position = UDim2.new(0, 5, 0, 35)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 6
@@ -313,10 +313,12 @@ scrollLayout.Parent = scroll
 scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scroll.CanvasSize = UDim2.new(0, 0, 0, scrollLayout.AbsoluteContentSize.Y + 10)
 end)
+
+-- Toggle
 local toggleRefs = {}
-local function toggle(key, y, cb)
+local function toggle(key, cb)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1,-20,0,30)
+    b.Size = UDim2.new(1, 0, 0, 30)
     b.BackgroundColor3 = Color3.fromRGB(40,40,40)
     b.Text = t(key) .. ": " .. t("off")
     b.TextColor3 = Color3.new(1,1,1)
@@ -324,9 +326,9 @@ local function toggle(key, y, cb)
     b.TextSize = 12
     b.AutoButtonColor = false
     b.BorderSizePixel = 0
-  b.Parent = scroll  -- ✅ Đổi panel → scroll
-Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
-local active = false
+    b.Parent = scroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    local active = false
     b.MouseButton1Click:Connect(function()
         active = not active
         b.BackgroundColor3 = active and Color3.fromRGB(60,60,60) or Color3.fromRGB(40,40,40)
@@ -337,21 +339,21 @@ local active = false
     return b
 end
 
-toggle("lock", 38, function(b, a)
+toggle("lock", function(b, a)
     Settings.Locked = a
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
-toggle("antifling", 74, function(b, a)
+toggle("antifling", function(b, a)
     if a then AFStart() else AFStop() end
 end)
-toggle("hidebtn", 110, function(b, a)
+toggle("hidebtn", function(b, a)
     Settings.HideMode = a
     for _, ref in pairs(allBtns) do
         if ref.frame and ref.frame.Parent then ref.frame.Visible = not a end
     end
     if a then b.BackgroundColor3 = Color3.fromRGB(255,170,0) end
 end)
- toggle("delmode", 146, function(b, a)
+toggle("delmode", function(b, a)
     Settings.DeleteMode = a
     for _, ref in pairs(allBtns) do
         if ref.frame and ref.frame.Parent then
@@ -364,7 +366,7 @@ end)
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
 
--- ✅ Nút load script ngoài
+-- Nút load script ngoài
 local function createScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 28)
@@ -392,6 +394,7 @@ createScriptBtn("🚀 Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui
 createScriptBtn("👻 Invisible", "https://pastebin.com/raw/3Rnd9rHf")
 createScriptBtn("💥 Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
+-- Ngôn ngữ
 local langLabel = Instance.new("TextLabel")
 langLabel.Size = UDim2.new(1, 0, 0, 18)
 langLabel.BackgroundTransparency = 1
@@ -416,23 +419,6 @@ langBtn.TextSize = 12
 langBtn.AutoButtonColor = false
 langBtn.BorderSizePixel = 0
 langBtn.Parent = scroll
-Instance.new("UICorner", langBtn).CornerRadius = UDim.new(0,6)
-
-local currentLang = "en"
-local langList = {"en", "vi", "pt", "es"}
-local langNames = {en = "English", vi = "Tiếng Việt", pt = "Português", es = "Español"}
-
-local langBtn = Instance.new("TextButton")
-langBtn.Size = UDim2.new(1,-20,0,28)
-langBtn.Position = UDim2.new(0,10,0,310)
-langBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-langBtn.Text = "English"
-langBtn.TextColor3 = Color3.new(1,1,1)
-langBtn.Font = Enum.Font.GothamBold
-langBtn.TextSize = 12
-langBtn.AutoButtonColor = false
-langBtn.BorderSizePixel = 0
-langBtn.Parent = panel
 Instance.new("UICorner", langBtn).CornerRadius = UDim.new(0,6)
 
 local function applyLang()
@@ -460,8 +446,8 @@ langBtn.MouseButton1Click:Connect(function()
     applyLang()
 end)
 
+-- Slider
 local function slider(name, min, max, def, cb)
-    -- Container
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 0, 42)
     container.BackgroundTransparency = 1
@@ -526,7 +512,6 @@ local function slider(name, min, max, def, cb)
     end)
 end
 
--- ✅ Slider KHÔNG cần y nữa — tự sắp xếp
 slider("⚡ " .. t("speed"), 0, 5, 1, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
@@ -536,32 +521,6 @@ slider("🏃 " .. t("walkspeed"), 0, 1000, 16, function(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
 
--- Settings button
+-- Nút Settings ⚙️
 local sFrame = Instance.new("Frame")
-sFrame.Size = UDim2.new(0,32,0,32)
-sFrame.Position = UDim2.new(1,-45,0,15)
-sFrame.BackgroundColor3 = Color3.new(0,0,0)
-sFrame.BorderSizePixel = 0
-sFrame.Active = true
-sFrame.Parent = sg
-Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0,8)
-local sBtn = Instance.new("TextButton")
-sBtn.Size = UDim2.new(1,0,1,0)
-sBtn.BackgroundColor3 = Color3.new(0,0,0)
-sBtn.Text = "⚙"
-sBtn.TextColor3 = Color3.new(1,1,1)
-sBtn.Font = Enum.Font.GothamBold
-sBtn.TextSize = 18
-sBtn.AutoButtonColor = false
-sBtn.BorderSizePixel = 0
-sBtn.Parent = sFrame
-Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
-local isSClick = makeDrag(sBtn, sFrame, false)
-sBtn.MouseButton1Click:Connect(function()
-    if isSClick() then panel.Visible = not panel.Visible end
-end)
-Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
-local isSClick = makeDrag(sBtn, sFrame, false)
-sBtn.MouseButton1Click:Connect(function()
-    if isSClick() then panel.Visible = not panel.Visible end
-end)
+sFrame.Size = UDim2.new(0,
