@@ -107,6 +107,53 @@ sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
+-- ✅ Container không có thanh kéo
+local container = Instance.new("Frame")
+container.Name = "BtnContainer"
+container.Size = UDim2.new(0, 310, 0, 165)
+container.Position = UDim2.new(0.5, -155, 0, 10)
+container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+container.BackgroundTransparency = 0.5
+container.BorderSizePixel = 0
+container.Active = true
+container.Parent = sg
+Instance.new("UICorner", container).CornerRadius = UDim.new(0, 10)
+
+local cs = Instance.new("UIStroke")
+cs.Color = Color3.fromRGB(100, 100, 200)
+cs.Thickness = 1.5
+cs.Transparency = 0.3
+cs.Parent = container
+
+-- Kéo container từ vùng trống (không phải nút)
+local cDrag = false
+local cs_, cp_
+container.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = true
+        cs_ = i.Position
+        cp_ = container.Position
+        local conn
+        conn = i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then
+                cDrag = false
+                if conn then conn:Disconnect() end
+            end
+        end)
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if cDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - cs_
+        container.Position = UDim2.new(cp_.X.Scale, cp_.X.Offset + d.X, cp_.Y.Scale, cp_.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = false
+    end
+end)
+
 local function makeDrag(btn, frame, respectLock)
     local drag, s, sp, moved = false, nil, nil, false
     btn.InputBegan:Connect(function(i)
@@ -143,7 +190,7 @@ local function createBtn(key, pos, id)
     f.BackgroundColor3 = Color3.new(0,0,0)
     f.BorderSizePixel = 0
     f.Active = true
-    f.Parent = sg
+    f.Parent = container
     Instance.new("UICorner", f).CornerRadius = UDim.new(0,6)
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(255, 50, 50)
@@ -217,18 +264,18 @@ local function createBtn(key, pos, id)
     return b
 end
 
-createBtn("spin", UDim2.new(0.5,-150,0,20), 133180711707319)
-createBtn("slap", UDim2.new(0.5,-47,0,20), 118273721275238)
-createBtn("dropkick", UDim2.new(0.5,56,0,20), 122990265693059)
-createBtn("backkick", UDim2.new(0.5,-150,0,52), 90161679204210)
-createBtn("superspin", UDim2.new(0.5,-47,0,52), 88814172353660)
-createBtn("superpunch", UDim2.new(0.5,56,0,52), 129850328316768)
-createBtn("somersault", UDim2.new(0.5,-150,0,84), 77072646896519)
-createBtn("mma", UDim2.new(0.5,-47,0,84), 112687071860501)
-createBtn("daphanluc", UDim2.new(0.5,56,0,84), 98481111917153)
-createBtn("dax3", UDim2.new(0.5,-150,0,116), 107652660092239)
-createBtn("cumoc", UDim2.new(0.5,-47,0,116), 96853318026158)
-createBtn("slash", UDim2.new(0.5,56,0,116), 82407225122935)
+createBtn("spin", UDim2.new(0, 10, 0, 30), 133180711707319)
+createBtn("slap", UDim2.new(0, 108, 0, 30), 118273721275238)
+createBtn("dropkick", UDim2.new(0, 206, 0, 30), 122990265693059)
+createBtn("backkick", UDim2.new(0, 10, 0, 62), 90161679204210)
+createBtn("superspin", UDim2.new(0, 108, 0, 62), 88814172353660)
+createBtn("superpunch", UDim2.new(0, 206, 0, 62), 129850328316768)
+createBtn("somersault", UDim2.new(0, 10, 0, 94), 77072646896519)
+createBtn("mma", UDim2.new(0, 108, 0, 94), 112687071860501)
+createBtn("daphanluc", UDim2.new(0, 206, 0, 94), 98481111917153)
+createBtn("dax3", UDim2.new(0, 10, 0, 126), 107652660092239)
+createBtn("cumoc", UDim2.new(0, 108, 0, 126), 96853318026158)
+createBtn("slash", UDim2.new(0, 206, 0, 126), 82407225122935)
 
 -- Nút xóa 🗑️
 local delFrame = Instance.new("Frame")
