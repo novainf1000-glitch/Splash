@@ -8,13 +8,13 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
 local Lang = {
-    en = {settings="Settings", lock="Lock", antifling="AntiFling", hidebtn="Hide Btn", delmode="Delete Mode", speed="Anim Speed", walkspeed="Walk Speed", lang="Language", on="ON", off="OFF",
+    en = {settings="Settings", lock="Lock", antifling="AntiFling", hidebtn="Hide Btn", delmode="Delete Mode", vertical="Vertical", speed="Anim Speed", walkspeed="Walk Speed", lang="Language", on="ON", off="OFF",
         btns={spin="Spin", slap="Slap", dropkick="Drop kick", backkick="Back kick", superspin="Super Spin Kick", superpunch="Super Punch", somersault="Somersault", mma="MMA kick", daphanluc="Rocket Kick", dax3="Triple Kick", cumoc="Hook Kick", slash="Slash"}},
-    vi = {settings="Cài đặt", lock="Khóa", antifling="Chống Fling", hidebtn="Ẩn nút", delmode="Xóa nút", speed="Tốc độ Anim", walkspeed="Tốc chạy", lang="Ngôn ngữ", on="BẬT", off="TẮT",
+    vi = {settings="Cài đặt", lock="Khóa", antifling="Chống Fling", hidebtn="Ẩn nút", delmode="Xóa nút", vertical="Xếp dọc", speed="Tốc độ Anim", walkspeed="Tốc chạy", lang="Ngôn ngữ", on="BẬT", off="TẮT",
         btns={spin="Xoay", slap="Tát", dropkick="Đá rơi", backkick="Đá sau", superspin="Siêu Xoay", superpunch="Siêu Đấm", somersault="Nhào lộn", mma="MMA", daphanluc="Đá phản lực", dax3="Đá 3 lần", cumoc="Cú móc", slash="Chém"}},
-    pt = {settings="Configurações", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Excluir", speed="Vel. Anim", walkspeed="Vel. Corrida", lang="Idioma", on="LIGADO", off="DESLIGADO",
+    pt = {settings="Configurações", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Excluir", vertical="Vertical", speed="Vel. Anim", walkspeed="Vel. Corrida", lang="Idioma", on="LIGADO", off="DESLIGADO",
         btns={spin="Girar", slap="Bofetada", dropkick="Chute Queda", backkick="Chute Trás", superspin="Super Giro", superpunch="Super Soco", somersault="Cambalhota", mma="MMA", daphanluc="Chute Foguete", dax3="Chute Triplo", cumoc="Gancho", slash="Corte"}},
-    es = {settings="Configuración", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Eliminar", speed="Vel. Anim", walkspeed="Vel. Correr", lang="Idioma", on="ACTIVADO", off="DESACTIVADO",
+    es = {settings="Configuración", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Eliminar", vertical="Vertical", speed="Vel. Anim", walkspeed="Vel. Correr", lang="Idioma", on="ACTIVADO", off="DESACTIVADO",
         btns={spin="Girar", slap="Bofetada", dropkick="Patada Caída", backkick="Patada Atrás", superspin="Súper Giro", superpunch="Súper Puño", somersault="Voltereta", mma="MMA", daphanluc="Patada Cohete", dax3="Patada Triple", cumoc="Gancho", slash="Corte"}},
 }
 
@@ -362,6 +362,47 @@ toggle("delmode", function(b, a)
             if a then ref.frame.Visible = true end
         end
     end
+
+-- ✅ Toggle xếp dọc
+local verticalMode = false
+toggle("vertical", function(b, a)
+    verticalMode = a
+    if a then b.BackgroundColor3 = Color3.fromRGB(100, 200, 100) end
+    
+    if a then
+        -- Xếp dọc: X = 50 (cạnh trái), Y tăng dần
+        local startX = 50
+        local startY = 200
+        local btnH = 28  -- Chiều cao nút (KHÔNG khoảng cách)
+        
+        for i, ref in pairs(allBtns) do
+            if ref.frame and ref.frame.Parent then
+                ref.frame.Position = UDim2.new(0, startX, 0, startY + (i - 1) * btnH)
+            end
+        end
+    else
+        -- Về vị trí cũ (lưới 3 cột × 4 hàng)
+        local positions = {
+            [1] = UDim2.new(0.5, -150, 0, 20),
+            [2] = UDim2.new(0.5, -47, 0, 20),
+            [3] = UDim2.new(0.5, 56, 0, 20),
+            [4] = UDim2.new(0.5, -150, 0, 52),
+            [5] = UDim2.new(0.5, -47, 0, 52),
+            [6] = UDim2.new(0.5, 56, 0, 52),
+            [7] = UDim2.new(0.5, -150, 0, 84),
+            [8] = UDim2.new(0.5, -47, 0, 84),
+            [9] = UDim2.new(0.5, 56, 0, 84),
+            [10] = UDim2.new(0.5, -150, 0, 116),
+            [11] = UDim2.new(0.5, -47, 0, 116),
+            [12] = UDim2.new(0.5, 56, 0, 116),
+        }
+        for i, ref in pairs(allBtns) do
+            if ref.frame and ref.frame.Parent and positions[i] then
+                ref.frame.Position = positions[i]
+            end
+        end
+    end
+end)
     delFrame.Visible = a
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
