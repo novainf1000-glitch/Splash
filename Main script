@@ -116,6 +116,7 @@ container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
 container.BorderSizePixel = 0
 container.Active = true
+container.Visible = false  -- ✅ Ẩn ban đầu, chỉ hiện khi Vertical BẬT
 container.Parent = sg
 Instance.new("UICorner", container).CornerRadius = UDim.new(0, 10)
 
@@ -420,16 +421,24 @@ toggle("vertical", function(b, a)
     if a then b.BackgroundColor3 = Color3.fromRGB(100, 200, 100) end
     
     if a then
-        local startX = 50
-        local startY = 200
-        local btnH = 28
+        -- ✅ BẬT: Hiện container + ẩn nút khỏi màn hình gốc
+        container.Visible = true
+        
         for i, ref in pairs(allBtns) do
             if ref.frame and ref.frame.Parent then
-                verticalPositions[i] = ref.frame.Position
-                ref.frame.Position = UDim2.new(0, startX, 0, startY + (i - 1) * btnH)
+                -- Cho nút vào container, xếp dọc
+                ref.frame.Parent = container
+                ref.frame.Position = UDim2.new(0, 10, 0, 30 + (i - 1) * 32)
+                ref.frame.Size = UDim2.new(1, -20, 0, 30)
             end
         end
+        
+        -- Đổi kích thước container cho vừa 12 nút
+        container.Size = UDim2.new(0, 200, 0, 30 + 12 * 32 + 10)
     else
+        -- ✅ TẮT: Ẩn container + trả nút về sg (màn hình gốc)
+        container.Visible = false
+        
         local positions = {
             [1] = UDim2.new(0.5, -150, 0, 20),
             [2] = UDim2.new(0.5, -47, 0, 20),
@@ -445,8 +454,12 @@ toggle("vertical", function(b, a)
             [12] = UDim2.new(0.5, 56, 0, 116),
         }
         for i, ref in pairs(allBtns) do
-            if ref.frame and ref.frame.Parent and positions[i] then
-                ref.frame.Position = positions[i]
+            if ref.frame and ref.frame.Parent then
+                ref.frame.Parent = sg  -- ✅ Trả về màn hình gốc
+                ref.frame.Size = UDim2.new(0, 94, 0, 28)  -- ✅ Size gốc
+                if positions[i] then
+                    ref.frame.Position = positions[i]
+                end
             end
         end
     end
