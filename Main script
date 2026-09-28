@@ -8,17 +8,17 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
 local Lang = {
-    en = {settings="Settings", lock="Lock", antifling="AntiFling", hidebtn="Hide Btn", delmode="Delete Mode", vertical="Vertical", speed="Anim Speed", walkspeed="Walk Speed", lang="Language", on="ON", off="OFF",
+    en = {settings="Settings", lock="Lock", antifling="AntiFling", hidebtn="Hide Btn", delmode="Delete Mode", vertical="Vertical", size="Size", speed="Anim Speed", walkspeed="Walk Speed", lang="Language", on="ON", off="OFF",
         btns={spin="Spin", slap="Slap", dropkick="Drop kick", backkick="Back kick", superspin="Super Spin Kick", superpunch="Super Punch", somersault="Somersault", mma="MMA kick", daphanluc="Rocket Kick", dax3="Triple Kick", cumoc="Hook Kick", slash="Slash"}},
-    vi = {settings="Cài đặt", lock="Khóa", antifling="Chống Fling", hidebtn="Ẩn nút", delmode="Xóa nút", vertical="Xếp dọc", speed="Tốc độ Anim", walkspeed="Tốc chạy", lang="Ngôn ngữ", on="BẬT", off="TẮT",
+    vi = {settings="Cài đặt", lock="Khóa", antifling="Chống Fling", hidebtn="Ẩn nút", delmode="Xóa nút", vertical="Xếp dọc", size="Kích thước", speed="Tốc độ Anim", walkspeed="Tốc chạy", lang="Ngôn ngữ", on="BẬT", off="TẮT",
         btns={spin="Xoay", slap="Tát", dropkick="Đá rơi", backkick="Đá sau", superspin="Siêu Xoay", superpunch="Siêu Đấm", somersault="Nhào lộn", mma="MMA", daphanluc="Đá phản lực", dax3="Đá 3 lần", cumoc="Cú móc", slash="Chém"}},
-    pt = {settings="Configurações", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Excluir", vertical="Vertical", speed="Vel. Anim", walkspeed="Vel. Corrida", lang="Idioma", on="LIGADO", off="DESLIGADO",
+    pt = {settings="Configurações", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Excluir", vertical="Vertical", size="Tamanho", speed="Vel. Anim", walkspeed="Vel. Corrida", lang="Idioma", on="LIGADO", off="DESLIGADO",
         btns={spin="Girar", slap="Bofetada", dropkick="Chute Queda", backkick="Chute Trás", superspin="Super Giro", superpunch="Super Soco", somersault="Cambalhota", mma="MMA", daphanluc="Chute Foguete", dax3="Chute Triplo", cumoc="Gancho", slash="Corte"}},
-    es = {settings="Configuración", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Eliminar", vertical="Vertical", speed="Vel. Anim", walkspeed="Vel. Correr", lang="Idioma", on="ACTIVADO", off="DESACTIVADO",
+    es = {settings="Configuración", lock="Bloquear", antifling="AntiFling", hidebtn="Ocultar", delmode="Modo Eliminar", vertical="Vertical", size="Tamaño", speed="Vel. Anim", walkspeed="Vel. Correr", lang="Idioma", on="ACTIVADO", off="DESACTIVADO",
         btns={spin="Girar", slap="Bofetada", dropkick="Patada Caída", backkick="Patada Atrás", superspin="Súper Giro", superpunch="Súper Puño", somersault="Voltereta", mma="MMA", daphanluc="Patada Cohete", dax3="Patada Triple", cumoc="Gancho", slash="Corte"}},
 }
 
-local Settings = {Speed = 1, Locked = false, WalkSpeed = 16, Language = "en", HideMode = false, DeleteMode = false, VerticalMode = false}
+local Settings = {Speed = 1, Locked = false, WalkSpeed = 16, Language = "en", HideMode = false, DeleteMode = false, VerticalMode = false, BtnSize = 10}
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
 local idCache = {}
 local allBtns = {}
@@ -100,23 +100,22 @@ end
 local function AFStop()
     if AFLConn then AFLConn:Disconnect() AFLConn = nil end
 end
-
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
--- ✅ Container không có thanh kéo
+-- ✅ Container (ẩn ban đầu)
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
-container.Size = UDim2.new(0, 310, 0, 165)
-container.Position = UDim2.new(0.5, -155, 0, 10)
+container.Size = UDim2.new(0, 200, 0, 400)
+container.Position = UDim2.new(0.5, -100, 0, 50)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
 container.BorderSizePixel = 0
 container.Active = true
-container.Visible = false  -- ✅ Ẩn ban đầu, chỉ hiện khi Vertical BẬT
+container.Visible = false
 container.Parent = sg
 Instance.new("UICorner", container).CornerRadius = UDim.new(0, 10)
 
@@ -126,10 +125,11 @@ cs.Thickness = 1.5
 cs.Transparency = 0.3
 cs.Parent = container
 
--- Kéo container từ vùng trống (không phải nút)
+-- Kéo container (tôn trọng Lock)
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
+    if Settings.Locked then return end
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         cDrag = true
         cs_ = i.Position
@@ -167,6 +167,7 @@ local function makeDrag(btn, frame, respectLock)
             end)
         end
     end)
+
     UIS.InputChanged:Connect(function(i)
         if not drag then return end
         if respectLock and Settings.Locked then drag = false return end
@@ -191,7 +192,7 @@ local function createBtn(key, pos, id)
     f.BackgroundColor3 = Color3.new(0,0,0)
     f.BorderSizePixel = 0
     f.Active = true
-    f.Parent = container
+    f.Parent = sg
     Instance.new("UICorner", f).CornerRadius = UDim.new(0,6)
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(255, 50, 50)
@@ -265,18 +266,18 @@ local function createBtn(key, pos, id)
     return b
 end
 
-createBtn("spin", UDim2.new(0, 10, 0, 30), 133180711707319)
-createBtn("slap", UDim2.new(0, 108, 0, 30), 118273721275238)
-createBtn("dropkick", UDim2.new(0, 206, 0, 30), 122990265693059)
-createBtn("backkick", UDim2.new(0, 10, 0, 62), 90161679204210)
-createBtn("superspin", UDim2.new(0, 108, 0, 62), 88814172353660)
-createBtn("superpunch", UDim2.new(0, 206, 0, 62), 129850328316768)
-createBtn("somersault", UDim2.new(0, 10, 0, 94), 77072646896519)
-createBtn("mma", UDim2.new(0, 108, 0, 94), 112687071860501)
-createBtn("daphanluc", UDim2.new(0, 206, 0, 94), 98481111917153)
-createBtn("dax3", UDim2.new(0, 10, 0, 126), 107652660092239)
-createBtn("cumoc", UDim2.new(0, 108, 0, 126), 96853318026158)
-createBtn("slash", UDim2.new(0, 206, 0, 126), 82407225122935)
+createBtn("spin", UDim2.new(0.5,-150,0,20), 133180711707319)
+createBtn("slap", UDim2.new(0.5,-47,0,20), 118273721275238)
+createBtn("dropkick", UDim2.new(0.5,56,0,20), 122990265693059)
+createBtn("backkick", UDim2.new(0.5,-150,0,52), 90161679204210)
+createBtn("superspin", UDim2.new(0.5,-47,0,52), 88814172353660)
+createBtn("superpunch", UDim2.new(0.5,56,0,52), 129850328316768)
+createBtn("somersault", UDim2.new(0.5,-150,0,84), 77072646896519)
+createBtn("mma", UDim2.new(0.5,-47,0,84), 112687071860501)
+createBtn("daphanluc", UDim2.new(0.5,56,0,84), 98481111917153)
+createBtn("dax3", UDim2.new(0.5,-150,0,116), 107652660092239)
+createBtn("cumoc", UDim2.new(0.5,-47,0,116), 96853318026158)
+createBtn("slash", UDim2.new(0.5,56,0,116), 82407225122935)
 
 -- Nút xóa 🗑️
 local delFrame = Instance.new("Frame")
@@ -318,7 +319,7 @@ delBtn.MouseButton1Click:Connect(function()
     })
 end)
 
--- Settings panel
+-- Panel Settings
 local panel = Instance.new("Frame")
 panel.Size = UDim2.new(0, 280, 0, 340)
 panel.Position = UDim2.new(1, -290, 0, 100)
@@ -340,9 +341,8 @@ title.AutoButtonColor = false
 title.BorderSizePixel = 0
 title.Parent = panel
 Instance.new("UICorner", title).CornerRadius = UDim.new(0,10)
-makeDrag(title, panel, false)
+makeDrag(title, panel, true)
 
--- ScrollingFrame
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, -10, 1, -40)
 scroll.Position = UDim2.new(0, 5, 0, 35)
@@ -362,7 +362,6 @@ scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scroll.CanvasSize = UDim2.new(0, 0, 0, scrollLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Toggle
 local toggleRefs = {}
 local function toggle(key, cb)
     local b = Instance.new("TextButton")
@@ -390,6 +389,7 @@ end
 toggle("lock", function(b, a)
     Settings.Locked = a
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
+    if container then container.Active = not a end
 end)
 toggle("antifling", function(b, a)
     if a then AFStart() else AFStop() end
@@ -413,32 +413,22 @@ toggle("delmode", function(b, a)
     delFrame.Visible = a
     if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
-
--- ✅ Toggle xếp dọc
-local verticalPositions = {}
 toggle("vertical", function(b, a)
     Settings.VerticalMode = a
     if a then b.BackgroundColor3 = Color3.fromRGB(100, 200, 100) end
-    
     if a then
-        -- ✅ BẬT: Hiện container + ẩn nút khỏi màn hình gốc
         container.Visible = true
-        
         for i, ref in pairs(allBtns) do
             if ref.frame and ref.frame.Parent then
-                -- Cho nút vào container, xếp dọc
                 ref.frame.Parent = container
-                ref.frame.Position = UDim2.new(0, 10, 0, 30 + (i - 1) * 32)
-                ref.frame.Size = UDim2.new(1, -20, 0, 30)
+                ref.frame.Position = UDim2.new(0, 10, 0, 10 + (i - 1) * (Settings.BtnSize * 2.8 + 4))
+                ref.frame.Size = UDim2.new(1, -20, 0, Settings.BtnSize * 2.8)
             end
         end
-        
-        -- Đổi kích thước container cho vừa 12 nút
-        container.Size = UDim2.new(0, 200, 0, 30 + 12 * 32 + 10)
+        local h = 20 + 12 * (Settings.BtnSize * 2.8 + 4)
+        container.Size = UDim2.new(0, Settings.BtnSize * 9.4 + 20, 0, h)
     else
-        -- ✅ TẮT: Ẩn container + trả nút về sg (màn hình gốc)
         container.Visible = false
-        
         local positions = {
             [1] = UDim2.new(0.5, -150, 0, 20),
             [2] = UDim2.new(0.5, -47, 0, 20),
@@ -455,8 +445,8 @@ toggle("vertical", function(b, a)
         }
         for i, ref in pairs(allBtns) do
             if ref.frame and ref.frame.Parent then
-                ref.frame.Parent = sg  -- ✅ Trả về màn hình gốc
-                ref.frame.Size = UDim2.new(0, 94, 0, 28)  -- ✅ Size gốc
+                ref.frame.Parent = sg
+                ref.frame.Size = UDim2.new(0, 94, 0, 28)
                 if positions[i] then
                     ref.frame.Position = positions[i]
                 end
@@ -465,7 +455,6 @@ toggle("vertical", function(b, a)
     end
 end)
 
--- Nút load script ngoài
 local function createScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 28)
@@ -493,7 +482,6 @@ createScriptBtn("🚀 Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui
 createScriptBtn("👻 Invisible", "https://pastebin.com/raw/3Rnd9rHf")
 createScriptBtn("💥 Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
--- Ngôn ngữ
 local langLabel = Instance.new("TextLabel")
 langLabel.Size = UDim2.new(1, 0, 0, 18)
 langLabel.BackgroundTransparency = 1
@@ -545,12 +533,11 @@ langBtn.MouseButton1Click:Connect(function()
     applyLang()
 end)
 
--- Slider
- local function slider(name, min, max, def, cb)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 42)
-    container.BackgroundTransparency = 1
-    container.Parent = scroll
+local function slider(name, min, max, def, cb)
+    local container2 = Instance.new("Frame")
+    container2.Size = UDim2.new(1, 0, 0, 42)
+    container2.BackgroundTransparency = 1
+    container2.Parent = scroll
 
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, 0, 0, 18)
@@ -561,13 +548,13 @@ end)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = container
+    lbl.Parent = container2
 
     local bar = Instance.new("Frame")
     bar.Size = UDim2.new(1, 0, 0, 12)
     bar.Position = UDim2.new(0, 0, 0, 24)
     bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    bar.Parent = container
+    bar.Parent = container2
     Instance.new("UICorner", bar).CornerRadius = UDim.new(0,6)
 
     local rel0 = (def-min)/(max-min)
@@ -620,6 +607,20 @@ slider("🏃 " .. t("walkspeed"), 0, 1000, 16, function(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
 
+-- ✅ Slider kích thước nút (1-40)
+slider("📏 " .. t("size"), 1, 40, 10, function(v)
+    local size = math.floor(v)
+    Settings.BtnSize = size
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then
+            ref.frame.Size = UDim2.new(0, size * 9.4, 0, size * 2.8)
+            if ref.btn then
+                ref.btn.TextSize = math.max(8, size)
+            end
+        end
+    end
+end)
+
 -- Nút Settings ⚙️
 local sFrame = Instance.new("Frame")
 sFrame.Size = UDim2.new(0,32,0,32)
@@ -643,4 +644,4 @@ Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
 local isSClick = makeDrag(sBtn, sFrame, false)
 sBtn.MouseButton1Click:Connect(function()
     if isSClick() then panel.Visible = not panel.Visible end
-end) 
+end)
