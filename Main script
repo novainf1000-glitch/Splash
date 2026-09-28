@@ -416,6 +416,14 @@ end)
 toggle("vertical", function(b, a)
     Settings.VerticalMode = a
     if a then b.BackgroundColor3 = Color3.fromRGB(100, 200, 100) end
+    
+    local function updateContainerSize()
+        if not Settings.VerticalMode then return end
+        local w = Settings.BtnSize * 9.4 + 20  -- 9.4 = 94/10 (rộng nút gốc / size gốc)
+        local h = 20 + 12 * (Settings.BtnSize * 2.8 + 4)
+        container.Size = UDim2.new(0, w, 0, h)
+    end
+    
     if a then
         container.Visible = true
         for i, ref in pairs(allBtns) do
@@ -425,8 +433,7 @@ toggle("vertical", function(b, a)
                 ref.frame.Size = UDim2.new(1, -20, 0, Settings.BtnSize * 2.8)
             end
         end
-        local h = 20 + 12 * (Settings.BtnSize * 2.8 + 4)
-        container.Size = UDim2.new(0, Settings.BtnSize * 9.4 + 20, 0, h)
+        updateContainerSize()
     else
         container.Visible = false
         local positions = {
@@ -611,6 +618,7 @@ end)
 slider("📏 " .. t("size"), 1, 40, 10, function(v)
     local size = math.floor(v)
     Settings.BtnSize = size
+    
     for _, ref in pairs(allBtns) do
         if ref.frame and ref.frame.Parent then
             ref.frame.Size = UDim2.new(0, size * 9.4, 0, size * 2.8)
@@ -618,6 +626,21 @@ slider("📏 " .. t("size"), 1, 40, 10, function(v)
                 ref.btn.TextSize = math.max(8, size)
             end
         end
+    end
+    
+    -- ✅ Nếu đang Vertical → cập nhật container + vị trí nút
+    if Settings.VerticalMode then
+        -- Cập nhật size + vị trí nút trong container
+        for i, ref in pairs(allBtns) do
+            if ref.frame and ref.frame.Parent then
+                ref.frame.Size = UDim2.new(1, -20, 0, size * 2.8)
+                ref.frame.Position = UDim2.new(0, 10, 0, 10 + (i - 1) * (size * 2.8 + 4))
+            end
+        end
+        -- Cập nhật size container
+        local w = size * 9.4 + 20
+        local h = 20 + 12 * (size * 2.8 + 4)
+        container.Size = UDim2.new(0, w, 0, h)
     end
 end)
 
