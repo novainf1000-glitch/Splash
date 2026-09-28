@@ -18,7 +18,7 @@ local Lang = {
         btns={spin="Girar", slap="Bofetada", dropkick="Patada Caída", backkick="Patada Atrás", superspin="Súper Giro", superpunch="Súper Puño", somersault="Voltereta", mma="MMA", daphanluc="Patada Cohete", dax3="Patada Triple", cumoc="Gancho", slash="Corte"}},
 }
 
-local Settings = {Speed = 1, Locked = false, WalkSpeed = 16, Language = "en", HideMode = false, DeleteMode = false}
+local Settings = {Speed = 1, Locked = false, WalkSpeed = 16, Language = "en", HideMode = false, DeleteMode = false, VerticalMode = false}
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
 local idCache = {}
 local allBtns = {}
@@ -272,7 +272,7 @@ end)
 
 -- Settings panel
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 280, 0, 320)
+panel.Size = UDim2.new(0, 280, 0, 340)
 panel.Position = UDim2.new(1, -290, 0, 100)
 panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
 panel.BorderSizePixel = 0
@@ -362,26 +362,27 @@ toggle("delmode", function(b, a)
             if a then ref.frame.Visible = true end
         end
     end
+    delFrame.Visible = a
+    if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
+end)
 
 -- ✅ Toggle xếp dọc
-local verticalMode = false
+local verticalPositions = {}
 toggle("vertical", function(b, a)
-    verticalMode = a
+    Settings.VerticalMode = a
     if a then b.BackgroundColor3 = Color3.fromRGB(100, 200, 100) end
     
     if a then
-        -- Xếp dọc: X = 50 (cạnh trái), Y tăng dần
         local startX = 50
         local startY = 200
-        local btnH = 28  -- Chiều cao nút (KHÔNG khoảng cách)
-        
+        local btnH = 28
         for i, ref in pairs(allBtns) do
             if ref.frame and ref.frame.Parent then
+                verticalPositions[i] = ref.frame.Position
                 ref.frame.Position = UDim2.new(0, startX, 0, startY + (i - 1) * btnH)
             end
         end
     else
-        -- Về vị trí cũ (lưới 3 cột × 4 hàng)
         local positions = {
             [1] = UDim2.new(0.5, -150, 0, 20),
             [2] = UDim2.new(0.5, -47, 0, 20),
@@ -402,9 +403,6 @@ toggle("vertical", function(b, a)
             end
         end
     end
-end)
-    delFrame.Visible = a
-    if a then b.BackgroundColor3 = Color3.fromRGB(255,60,60) end
 end)
 
 -- Nút load script ngoài
@@ -488,7 +486,7 @@ langBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Slider
-local function slider(name, min, max, def, cb)
+ local function slider(name, min, max, def, cb)
     local container = Instance.new("Frame")
     container.Size = UDim2.new(1, 0, 0, 42)
     container.BackgroundTransparency = 1
@@ -564,28 +562,25 @@ end)
 
 -- Nút Settings ⚙️
 local sFrame = Instance.new("Frame")
-sFrame.Size = UDim2.new(0, 32, 0, 32)
-sFrame.Position = UDim2.new(1, -45, 0, 15)
-sFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+sFrame.Size = UDim2.new(0,32,0,32)
+sFrame.Position = UDim2.new(1,-45,0,15)
+sFrame.BackgroundColor3 = Color3.new(0,0,0)
 sFrame.BorderSizePixel = 0
 sFrame.Active = true
 sFrame.Parent = sg
-Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
-
+Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0,8)
 local sBtn = Instance.new("TextButton")
-sBtn.Size = UDim2.new(1, 0, 1, 0)
-sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+sBtn.Size = UDim2.new(1,0,1,0)
+sBtn.BackgroundColor3 = Color3.new(0,0,0)
 sBtn.Text = "⚙"
-sBtn.TextColor3 = Color3.new(1, 1, 1)
+sBtn.TextColor3 = Color3.new(1,1,1)
 sBtn.Font = Enum.Font.GothamBold
 sBtn.TextSize = 18
 sBtn.AutoButtonColor = false
 sBtn.BorderSizePixel = 0
 sBtn.Parent = sFrame
-Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
-
+Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0,8)
 local isSClick = makeDrag(sBtn, sFrame, false)
-
 sBtn.MouseButton1Click:Connect(function()
     if isSClick() then panel.Visible = not panel.Visible end
-end)
+end) 
