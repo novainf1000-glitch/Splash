@@ -1,8 +1,6 @@
 --[[ MENU SCRIPT ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local HttpService = game:GetService("HttpService")
@@ -65,55 +63,10 @@ local PlayerInfo = {
     Device = getDeviceType(),
 }
 
-local Settings = {Speed = 1, Locked = false, WalkSpeed = 16}
-local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
-local idCache = {}
-
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-player.CharacterAdded:Connect(function(c)
-    char = c
-    hum = c:WaitForChild("Humanoid")
-    task.wait(0.5)
-    hum.WalkSpeed = Settings.WalkSpeed
-end)
-
-local function getAnimator()
-    if not hum then return nil end
-    local a = hum:FindFirstChildOfClass("Animator")
-    if not a then a = Instance.new("Animator") a.Parent = hum end
-    return a
-end
-
-local function LoadTrack(id)
-    local a = getAnimator()
-    if not a then return nil end
-    if CurrentTrack then pcall(function() CurrentTrack:Stop(0) end) CurrentTrack = nil end
-    local animId = "rbxassetid://" .. tostring(id)
-    local ok, result = pcall(function() return game:GetObjects(animId) end)
-    if ok and result and #result > 0 and result[1]:IsA("Animation") then
-        animId = result[1].AnimationId
-    end
-    local anim = Instance.new("Animation")
-    anim.AnimationId = animId
-    local ok2, track = pcall(function() return a:LoadAnimation(anim) end)
-    if not ok2 or not track then return nil end
-    track.Priority = Enum.AnimationPriority.Action4
-    track.Looped = false
-    pcall(function() track:Play(0.1, 1, Settings.Speed) end)
-    CurrentTrack = track
-    return track
-end
-
-local function StopTrack()
-    if CurrentTrack then pcall(function() CurrentTrack:Stop(0.1) end) CurrentTrack = nil end
-    IsPlaying = false
-end
-
 local CloudData = {}
 
 local function CloudFetch()
-    if not game:HttpGet then return {} end
+    if type(game.HttpGet) ~= "function" then return {} end
     local ok, result = pcall(function()
         return game:HttpGet(NPOINT_URL)
     end)
@@ -128,7 +81,7 @@ local function CloudFetch()
 end
 
 local function CloudSave()
-    if not game:HttpPost then return false end
+    if type(game.HttpPost) ~= "function" then return false end
     local payload = HttpService:JSONEncode(CloudData)
     local ok = pcall(function()
         game:HttpPost(NPOINT_URL, payload, true, {
@@ -148,12 +101,13 @@ local function CloudAdd(name, url, category)
     return CloudSave()
 end
 
-local function CloudRemove(index)
-    if CloudData[index] then
-        table.remove(CloudData, index)
-        return CloudSave()
+local function CloudRemoveByName(targetName)
+    for i = #CloudData, 1, -1 do
+        if CloudData[i].name == targetName then
+            table.remove(CloudData, i)
+        end
     end
-    return false
+    return CloudSave()
 end
 
 local sg = Instance.new("ScreenGui")
@@ -163,8 +117,8 @@ sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 620, 0, 380)
-mainFrame.Position = UDim2.new(0.5, -310, 0.5, -190)
+mainFrame.Size = UDim2.new(0.85, 0, 0.75, 0)
+mainFrame.Position = UDim2.new(0.075, 0, 0.125, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
@@ -177,7 +131,7 @@ mainStroke.Thickness = 1.5
 mainStroke.Parent = mainFrame
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 32)
+titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
@@ -202,7 +156,7 @@ titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 24)
+closeBtn.Size = UDim2.new(0, 30, 0, 22)
 closeBtn.Position = UDim2.new(1, -35, 0, 4)
 closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 closeBtn.Text = "X"
@@ -219,8 +173,8 @@ closeBtn.MouseButton1Click:Connect(function()
 end)
 
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 110, 1, -40)
-sidebar.Position = UDim2.new(0, 5, 0, 36)
+sidebar.Size = UDim2.new(0, 100, 1, -38)
+sidebar.Position = UDim2.new(0, 5, 0, 34)
 sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
@@ -238,8 +192,8 @@ sidebarPad.PaddingRight = UDim.new(0, 5)
 sidebarPad.Parent = sidebar
 
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -125, 1, -42)
-content.Position = UDim2.new(0, 120, 0, 36)
+content.Size = UDim2.new(1, -115, 1, -40)
+content.Position = UDim2.new(0, 110, 0, 34)
 content.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 content.BorderSizePixel = 0
 content.Parent = mainFrame
@@ -247,9 +201,10 @@ Instance.new("UICorner", content).CornerRadius = UDim.new(0, 8)
 
 local drag, ds, dp = false, nil, nil
 titleBar.InputBegan:Connect(function(i)
-    if Settings.Locked then return end
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        drag = true ds = i.Position dp = mainFrame.Position
+        drag = true
+        ds = i.Position
+        dp = mainFrame.Position
     end
 end)
 titleBar.InputEnded:Connect(function(i)
@@ -259,7 +214,6 @@ titleBar.InputEnded:Connect(function(i)
 end)
 UIS.InputChanged:Connect(function(i)
     if not drag then return end
-    if Settings.Locked then drag = false return end
     if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
         local d = i.Position - ds
         mainFrame.Position = UDim2.new(dp.X.Scale, dp.X.Offset + d.X, dp.Y.Scale, dp.Y.Offset + d.Y)
@@ -293,12 +247,12 @@ local currentTab = nil
 
 local function createTab(id, name)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 34)
+    btn.Size = UDim2.new(1, -10, 0, 30)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 220)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.AutoButtonColor = false
     btn.BorderSizePixel = 0
     btn.Parent = sidebar
@@ -335,7 +289,7 @@ end
 local homeTab = createTab("home", "Home")
 
 local avatarFrame = Instance.new("Frame")
-avatarFrame.Size = UDim2.new(0, 100, 0, 100)
+avatarFrame.Size = UDim2.new(0, 80, 0, 80)
 avatarFrame.Position = UDim2.new(0, 10, 0, 10)
 avatarFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 avatarFrame.BorderSizePixel = 0
@@ -355,8 +309,8 @@ pcall(function()
 end)
 
 local infoText = Instance.new("TextLabel")
-infoText.Size = UDim2.new(1, -130, 1, -20)
-infoText.Position = UDim2.new(0, 120, 0, 10)
+infoText.Size = UDim2.new(1, -110, 1, -20)
+infoText.Position = UDim2.new(0, 100, 0, 10)
 infoText.BackgroundTransparency = 1
 infoText.Text = 
     "Display: " .. PlayerInfo.DisplayName .. "\n" ..
@@ -370,26 +324,15 @@ infoText.Text =
     "Device: " .. PlayerInfo.Device
 infoText.TextColor3 = Color3.fromRGB(220, 220, 240)
 infoText.Font = Enum.Font.Code
-infoText.TextSize = 12
+infoText.TextSize = 11
 infoText.TextXAlignment = Enum.TextXAlignment.Left
 infoText.TextYAlignment = Enum.TextYAlignment.Top
 infoText.Parent = homeTab
-
-local welcome = Instance.new("TextLabel")
-welcome.Size = UDim2.new(0, 100, 0, 40)
-welcome.Position = UDim2.new(0, 10, 0, 120)
-welcome.BackgroundTransparency = 1
-welcome.Text = "WELCOME\n" .. PlayerInfo.Username
-welcome.TextColor3 = Color3.fromRGB(100, 200, 255)
-welcome.Font = Enum.Font.GothamBold
-welcome.TextSize = 11
-welcome.Parent = homeTab
-
 local function createGridTab(tabId, tabName)
     local tab = createTab(tabId, tabName)
 
     local searchFrame = Instance.new("Frame")
-    searchFrame.Size = UDim2.new(1, -10, 0, 30)
+    searchFrame.Size = UDim2.new(1, -10, 0, 28)
     searchFrame.Position = UDim2.new(0, 5, 0, 5)
     searchFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     searchFrame.BorderSizePixel = 0
@@ -412,7 +355,7 @@ local function createGridTab(tabId, tabName)
 
     local counter = Instance.new("TextLabel")
     counter.Size = UDim2.new(0, 100, 0, 20)
-    counter.Position = UDim2.new(1, -110, 0, 8)
+    counter.Position = UDim2.new(1, -105, 0, 8)
     counter.BackgroundTransparency = 1
     counter.Text = "Scripts: 0"
     counter.TextColor3 = Color3.fromRGB(180, 180, 200)
@@ -422,8 +365,8 @@ local function createGridTab(tabId, tabName)
     counter.Parent = tab
 
     local gridScroll = Instance.new("ScrollingFrame")
-    gridScroll.Size = UDim2.new(1, -10, 1, -45)
-    gridScroll.Position = UDim2.new(0, 5, 0, 40)
+    gridScroll.Size = UDim2.new(1, -10, 1, -42)
+    gridScroll.Position = UDim2.new(0, 5, 0, 38)
     gridScroll.BackgroundTransparency = 1
     gridScroll.BorderSizePixel = 0
     gridScroll.ScrollBarThickness = 5
@@ -431,7 +374,7 @@ local function createGridTab(tabId, tabName)
     gridScroll.Parent = tab
 
     local grid = Instance.new("UIGridLayout")
-    grid.CellSize = UDim2.new(0, 100, 0, 50)
+    grid.CellSize = UDim2.new(0, 90, 0, 45)
     grid.CellPadding = UDim2.new(0, 5, 0, 5)
     grid.SortOrder = Enum.SortOrder.LayoutOrder
     grid.Parent = gridScroll
@@ -458,14 +401,14 @@ local function createGridTab(tabId, tabName)
         filterScripts(searchBox.Text)
     end)
 
-    local function createScriptBtn(data, index)
+    local function createScriptBtn(data)
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0, 100, 0, 50)
+        b.Size = UDim2.new(0, 90, 0, 45)
         b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
         b.Text = data.name
         b.TextColor3 = Color3.new(1, 1, 1)
         b.Font = Enum.Font.GothamBold
-        b.TextSize = 11
+        b.TextSize = 10
         b.TextWrapped = true
         b.AutoButtonColor = false
         b.BorderSizePixel = 0
@@ -486,13 +429,20 @@ local function createGridTab(tabId, tabName)
         Instance.new("UICorner", delBtn).CornerRadius = UDim.new(1, 0)
 
         b.MouseButton1Click:Connect(function()
-            pcall(function()
+            local ok, err = pcall(function()
                 loadstring(game:HttpGet(data.url))()
             end)
+            if not ok then
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Load Error",
+                    Text = "Failed: " .. tostring(err),
+                    Duration = 5
+                })
+            end
         end)
 
         delBtn.MouseButton1Click:Connect(function()
-            CloudRemove(index)
+            CloudRemoveByName(data.name)
             b:Destroy()
             for i, item in pairs(scriptBtns) do
                 if item.btn == b then
@@ -515,12 +465,12 @@ local function createGridTab(tabId, tabName)
     end
 
     local addBtn = Instance.new("TextButton")
-    addBtn.Size = UDim2.new(0, 100, 0, 50)
+    addBtn.Size = UDim2.new(0, 90, 0, 45)
     addBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 150)
     addBtn.Text = "Add Script"
     addBtn.TextColor3 = Color3.new(1, 1, 1)
     addBtn.Font = Enum.Font.GothamBold
-    addBtn.TextSize = 12
+    addBtn.TextSize = 11
     addBtn.AutoButtonColor = false
     addBtn.BorderSizePixel = 0
     addBtn.Parent = gridScroll
@@ -541,6 +491,7 @@ end
 local mainGrid = createGridTab("main", "Main")
 local otherGrid = createGridTab("other", "Other")
 
+-- SETTINGS TAB
 local setTab = createTab("settings", "Settings")
 
 local setScroll = Instance.new("ScrollingFrame")
@@ -548,7 +499,7 @@ setScroll.Size = UDim2.new(1, 0, 1, 0)
 setScroll.BackgroundTransparency = 1
 setScroll.BorderSizePixel = 0
 setScroll.ScrollBarThickness = 5
-setScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+setScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
 setScroll.Parent = setTab
 
 local setLayout = Instance.new("UIListLayout")
@@ -556,108 +507,47 @@ setLayout.Padding = UDim.new(0, 5)
 setLayout.SortOrder = Enum.SortOrder.LayoutOrder
 setLayout.Parent = setScroll
 
-local function makeToggle(name, cb)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 30)
-    b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-    b.Text = name .. ": OFF"
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.Parent = setScroll
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    local active = false
-    b.MouseButton1Click:Connect(function()
-        active = not active
-        b.Text = name .. ": " .. (active and "ON" or "OFF")
-        b.BackgroundColor3 = active and Color3.fromRGB(60, 60, 100) or Color3.fromRGB(40, 40, 55)
-        cb(active)
-    end)
-    return b
-end
+local lockToggle = Instance.new("TextButton")
+lockToggle.Size = UDim2.new(1, -10, 0, 30)
+lockToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+lockToggle.Text = "Lock Button: OFF"
+lockToggle.TextColor3 = Color3.new(1, 1, 1)
+lockToggle.Font = Enum.Font.GothamBold
+lockToggle.TextSize = 12
+lockToggle.AutoButtonColor = false
+lockToggle.BorderSizePixel = 0
+lockToggle.Parent = setScroll
+Instance.new("UICorner", lockToggle).CornerRadius = UDim.new(0, 6)
 
-makeToggle("Lock Button", function(a)
-    Settings.Locked = a
+local isLocked = false
+lockToggle.MouseButton1Click:Connect(function()
+    isLocked = not isLocked
+    lockToggle.Text = "Lock Button: " .. (isLocked and "ON" or "OFF")
+    lockToggle.BackgroundColor3 = isLocked and Color3.fromRGB(60, 60, 100) or Color3.fromRGB(40, 40, 55)
 end)
 
-local function makeSlider(name, min, max, def, cb)
-    local c2 = Instance.new("Frame")
-    c2.Size = UDim2.new(1, -10, 0, 42)
-    c2.BackgroundTransparency = 1
-    c2.Parent = setScroll
-
+local function makeInfoRow(text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 18)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = name .. ": " .. def
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
-    lbl.Font = Enum.Font.GothamBold
+    lbl.Size = UDim2.new(1, -10, 0, 25)
+    lbl.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 240)
+    lbl.Font = Enum.Font.Code
     lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = c2
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, 0, 0, 12)
-    bar.Position = UDim2.new(0, 0, 0, 24)
-    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    bar.Parent = c2
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
-
-    local rel0 = (def-min)/(max-min)
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(rel0, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(100, 130, 255)
-    fill.Parent = bar
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
-
-    local th = Instance.new("Frame")
-    th.Size = UDim2.new(0, 14, 0, 14)
-    th.AnchorPoint = Vector2.new(0.5, 0.5)
-    th.Position = UDim2.new(rel0, 0, 0.5, 0)
-    th.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-    th.Parent = bar
-    Instance.new("UICorner", th).CornerRadius = UDim.new(1,0)
-
-    local drag = false
-    local function set(v)
-        v = math.clamp(v, min, max)
-        lbl.Text = name .. ": " .. math.floor(v)
-        local r = (v-min)/(max-min)
-        fill.Size = UDim2.new(r, 0, 1, 0)
-        th.Position = UDim2.new(r, 0, 0.5, 0)
-        cb(v)
-    end
-    local function upd(i)
-        local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-        set(min + (max-min) * r)
-    end
-    bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            drag = true upd(i)
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
-    end)
-    UIS.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end
-    end)
+    lbl.Parent = setScroll
+    Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 6)
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, 10)
+    pad.Parent = lbl
 end
 
-makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
-    Settings.Speed = v
-    if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
-end)
-makeSlider("Tốc chạy", 0, 1000, 16, function(v)
-    Settings.WalkSpeed = math.floor(v)
-    if hum then hum.WalkSpeed = math.floor(v) end
-end)
-
+makeInfoRow("Cloud: NPoint.io")
+makeInfoRow("Auto-sync: Enabled")
+-- ADD SCRIPT FORM
 local formFrame = Instance.new("Frame")
-formFrame.Size = UDim2.new(0, 320, 0, 260)
-formFrame.Position = UDim2.new(0.5, -160, 0.5, -130)
+formFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
+formFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
 formFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 formFrame.BorderSizePixel = 0
 formFrame.Visible = false
@@ -671,7 +561,7 @@ formStroke.Thickness = 1.5
 formStroke.Parent = formFrame
 
 local formTitle = Instance.new("TextLabel")
-formTitle.Size = UDim2.new(1, 0, 0, 30)
+formTitle.Size = UDim2.new(1, 0, 0, 28)
 formTitle.BackgroundTransparency = 1
 formTitle.Text = "Add New Script"
 formTitle.TextColor3 = Color3.new(1, 1, 1)
@@ -680,35 +570,44 @@ formTitle.TextSize = 14
 formTitle.ZIndex = 11
 formTitle.Parent = formFrame
 
-local function makeInput(placeholder, y)
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, -20, 0, 32)
-    box.Position = UDim2.new(0, 10, 0, y)
-    box.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    box.PlaceholderText = placeholder
-    box.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
-    box.Text = ""
-    box.TextColor3 = Color3.fromRGB(220, 220, 240)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 12
-    box.ClearTextOnFocus = false
-    box.ZIndex = 11
-    box.Parent = formFrame
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
-    return box
-end
+local nameInput = Instance.new("TextBox")
+nameInput.Size = UDim2.new(1, -20, 0, 30)
+nameInput.Position = UDim2.new(0, 10, 0, 36)
+nameInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+nameInput.PlaceholderText = "Script Name"
+nameInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+nameInput.Text = ""
+nameInput.TextColor3 = Color3.fromRGB(220, 220, 240)
+nameInput.Font = Enum.Font.Gotham
+nameInput.TextSize = 12
+nameInput.ClearTextOnFocus = false
+nameInput.ZIndex = 11
+nameInput.Parent = formFrame
+Instance.new("UICorner", nameInput).CornerRadius = UDim.new(0, 6)
 
-local nameInput = makeInput("Script Name", 40)
-local urlInput = makeInput("Script URL (raw link)", 80)
+local urlInput = Instance.new("TextBox")
+urlInput.Size = UDim2.new(1, -20, 0, 30)
+urlInput.Position = UDim2.new(0, 10, 0, 72)
+urlInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+urlInput.PlaceholderText = "Script URL (raw link)"
+urlInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+urlInput.Text = ""
+urlInput.TextColor3 = Color3.fromRGB(220, 220, 240)
+urlInput.Font = Enum.Font.Gotham
+urlInput.TextSize = 12
+urlInput.ClearTextOnFocus = false
+urlInput.ZIndex = 11
+urlInput.Parent = formFrame
+Instance.new("UICorner", urlInput).CornerRadius = UDim.new(0, 6)
 
 local catLabel = Instance.new("TextLabel")
-catLabel.Size = UDim2.new(1, -20, 0, 20)
-catLabel.Position = UDim2.new(0, 10, 0, 120)
+catLabel.Size = UDim2.new(1, -20, 0, 18)
+catLabel.Position = UDim2.new(0, 10, 0, 108)
 catLabel.BackgroundTransparency = 1
 catLabel.Text = "Category:"
 catLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
 catLabel.Font = Enum.Font.GothamBold
-catLabel.TextSize = 12
+catLabel.TextSize = 11
 catLabel.TextXAlignment = Enum.TextXAlignment.Left
 catLabel.ZIndex = 11
 catLabel.Parent = formFrame
@@ -716,8 +615,8 @@ catLabel.Parent = formFrame
 local selectedCategory = "Main"
 
 local mainCatBtn = Instance.new("TextButton")
-mainCatBtn.Size = UDim2.new(0, 140, 0, 32)
-mainCatBtn.Position = UDim2.new(0, 10, 0, 145)
+mainCatBtn.Size = UDim2.new(0.45, 0, 0, 28)
+mainCatBtn.Position = UDim2.new(0, 10, 0, 130)
 mainCatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
 mainCatBtn.Text = "Main"
 mainCatBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -730,8 +629,8 @@ mainCatBtn.Parent = formFrame
 Instance.new("UICorner", mainCatBtn).CornerRadius = UDim.new(0, 6)
 
 local otherCatBtn = Instance.new("TextButton")
-otherCatBtn.Size = UDim2.new(0, 140, 0, 32)
-otherCatBtn.Position = UDim2.new(1, -150, 0, 145)
+otherCatBtn.Size = UDim2.new(0.45, 0, 0, 28)
+otherCatBtn.Position = UDim2.new(0.55, 0, 0, 130)
 otherCatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
 otherCatBtn.Text = "Other"
 otherCatBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -756,13 +655,13 @@ otherCatBtn.MouseButton1Click:Connect(function()
 end)
 
 local cancelBtn = Instance.new("TextButton")
-cancelBtn.Size = UDim2.new(0, 140, 0, 36)
-cancelBtn.Position = UDim2.new(0, 10, 0, 195)
+cancelBtn.Size = UDim2.new(0.45, 0, 0, 32)
+cancelBtn.Position = UDim2.new(0, 10, 0, 170)
 cancelBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 cancelBtn.Text = "Cancel"
 cancelBtn.TextColor3 = Color3.new(1, 1, 1)
 cancelBtn.Font = Enum.Font.GothamBold
-cancelBtn.TextSize = 13
+cancelBtn.TextSize = 12
 cancelBtn.AutoButtonColor = false
 cancelBtn.BorderSizePixel = 0
 cancelBtn.ZIndex = 11
@@ -770,13 +669,13 @@ cancelBtn.Parent = formFrame
 Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 6)
 
 local createBtn = Instance.new("TextButton")
-createBtn.Size = UDim2.new(0, 140, 0, 36)
-createBtn.Position = UDim2.new(1, -150, 0, 195)
+createBtn.Size = UDim2.new(0.45, 0, 0, 32)
+createBtn.Position = UDim2.new(0.55, 0, 0, 170)
 createBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
 createBtn.Text = "Create"
 createBtn.TextColor3 = Color3.new(1, 1, 1)
 createBtn.Font = Enum.Font.GothamBold
-createBtn.TextSize = 13
+createBtn.TextSize = 12
 createBtn.AutoButtonColor = false
 createBtn.BorderSizePixel = 0
 createBtn.ZIndex = 11
@@ -820,7 +719,7 @@ createBtn.MouseButton1Click:Connect(function()
     if success then
         local target = (category == "Main") and mainGrid or otherGrid
         local data = {name = name, url = url, category = category}
-        target.createScriptBtn(data, #CloudData)
+        target.createScriptBtn(data)
         target.refreshCounter()
 
         StarterGui:SetCore("SendNotification", {
@@ -839,6 +738,7 @@ createBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- LOAD CLOUD
 task.spawn(function()
     local data = CloudFetch()
 
@@ -846,7 +746,7 @@ task.spawn(function()
         for i, item in ipairs(data) do
             if item.name and item.url and item.category then
                 local target = (item.category == "Main") and mainGrid or otherGrid
-                target.createScriptBtn(item, i)
+                target.createScriptBtn(item)
             end
         end
         mainGrid.refreshCounter()
