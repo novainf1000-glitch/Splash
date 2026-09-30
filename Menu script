@@ -1,4 +1,4 @@
---[[ MENU SCRIPT ]]
+2--[[ MENU SCRIPT ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -13,34 +13,45 @@ local NPOINT_URL = "https://api.npoint.io/d442fac81151fd1f8c83"
 
 -- INFO NGUOI CHOI
 local function getDeviceType()
-    if UIS.TouchEnabled and not UIS.KeyboardEnabled then
-        if workspace.CurrentCamera then
-            local vp = workspace.CurrentCamera.ViewportSize
-            if vp.X >= 1024 or vp.Y >= 768 then return "Tablet" end
+    local ok, result = pcall(function()
+        if UIS.TouchEnabled and not UIS.KeyboardEnabled then
+            if workspace.CurrentCamera then
+                local vp = workspace.CurrentCamera.ViewportSize
+                if vp.X >= 1024 or vp.Y >= 768 then return "Tablet" end
+            end
+            return "Mobile"
+        elseif UIS.KeyboardEnabled and UIS.MouseEnabled then
+            return "Desktop"
         end
-        return "Mobile"
-    elseif UIS.KeyboardEnabled and UIS.MouseEnabled then
-        return "Desktop"
-    end
+        return "Unknown"
+    end)
+    if ok and result then return result end
     return "Unknown"
 end
 
 local function getPlatform()
-    if UIS.TouchEnabled and not UIS.KeyboardEnabled then return "Android/iOS" end
-    if UIS.KeyboardEnabled then return "PC" end
+    local ok, result = pcall(function()
+        if UIS.TouchEnabled and not UIS.KeyboardEnabled then return "Android/iOS" end
+        if UIS.KeyboardEnabled then return "PC" end
+        return "Unknown"
+    end)
+    if ok and result then return result end
     return "Unknown"
 end
 
 local function getExecutor()
-    if syn then return "Synapse X" end
-    if KRNL_LOADED then return "Krnl" end
-    if fluxus then return "Fluxus" end
-    if Delta then return "Delta" end
-    if isElectron then return "Electron" end
-    if identifyexecutor then
-        local ok, name = pcall(identifyexecutor)
-        if ok then return name end
-    end
+    local ok, name = pcall(function()
+        if syn then return "Synapse X" end
+        if KRNL_LOADED then return "Krnl" end
+        if fluxus then return "Fluxus" end
+        if Delta then return "Delta" end
+        if isElectron then return "Electron" end
+        if identifyexecutor and type(identifyexecutor) == "function" then
+            return identifyexecutor()
+        end
+        return "Unknown"
+    end)
+    if ok and name then return name end
     return "Unknown"
 end
 
