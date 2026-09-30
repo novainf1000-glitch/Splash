@@ -4,10 +4,11 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- CLOUD CONFIG (NPOINT)
+-- CLOUD CONFIG
 local NPOINT_URL = "https://api.npoint.io/d442fac81151fd1f8c83"
 
 -- INFO NGUOI CHOI
@@ -102,7 +103,7 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- CLOUD SYNC (NPOINT)
+-- CLOUD SYNC
 local CloudData = {}
 
 local function CloudFetch()
@@ -139,6 +140,14 @@ local function CloudAdd(name, url, category)
         author = "user"
     })
     return CloudSave()
+end
+
+local function CloudRemove(index)
+    if CloudData[index] then
+        table.remove(CloudData, index)
+        return CloudSave()
+    end
+    return false
 end
 
 -- GUI CHINH
@@ -372,13 +381,7 @@ welcome.TextColor3 = Color3.fromRGB(100, 200, 255)
 welcome.Font = Enum.Font.GothamBold
 welcome.TextSize = 11
 welcome.Parent = homeTab
-local function CloudRemove(index)
-    if CloudData[index] then
-        table.remove(CloudData, index)
-        return CloudSave()
-    end
-    return false
-end
+-- HAM TAO GRID TAB
 local function createGridTab(tabId, tabName)
     local tab = createTab(tabId, tabName)
 
@@ -535,7 +538,122 @@ end
 local mainGrid = createGridTab("main", "Main")
 local otherGrid = createGridTab("other", "Other")
 
--- ===== ADD SCRIPT FORM =====
+-- TAB SETTINGS
+local setTab = createTab("settings", "Settings")
+
+local setScroll = Instance.new("ScrollingFrame")
+setScroll.Size = UDim2.new(1, 0, 1, 0)
+setScroll.BackgroundTransparency = 1
+setScroll.BorderSizePixel = 0
+setScroll.ScrollBarThickness = 5
+setScroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+setScroll.Parent = setTab
+
+local setLayout = Instance.new("UIListLayout")
+setLayout.Padding = UDim.new(0, 5)
+setLayout.SortOrder = Enum.SortOrder.LayoutOrder
+setLayout.Parent = setScroll
+
+local function makeToggle(name, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    b.Text = name .. ": OFF"
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = setScroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    local active = false
+    b.MouseButton1Click:Connect(function()
+        active = not active
+        b.Text = name .. ": " .. (active and "ON" or "OFF")
+        b.BackgroundColor3 = active and Color3.fromRGB(60, 60, 100) or Color3.fromRGB(40, 40, 55)
+        cb(active)
+    end)
+    return b
+end
+
+makeToggle("Lock Button", function(a)
+    Settings.Locked = a
+end)
+
+local function makeSlider(name, min, max, def, cb)
+    local c2 = Instance.new("Frame")
+    c2.Size = UDim2.new(1, -10, 0, 42)
+    c2.BackgroundTransparency = 1
+    c2.Parent = setScroll
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name .. ": " .. def
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = c2
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, 0, 0, 12)
+    bar.Position = UDim2.new(0, 0, 0, 24)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    bar.Parent = c2
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
+
+    local rel0 = (def-min)/(max-min)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(rel0, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(100, 130, 255)
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
+
+    local th = Instance.new("Frame")
+    th.Size = UDim2.new(0, 14, 0, 14)
+    th.AnchorPoint = Vector2.new(0.5, 0.5)
+    th.Position = UDim2.new(rel0, 0, 0.5, 0)
+    th.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    th.Parent = bar
+    Instance.new("UICorner", th).CornerRadius = UDim.new(1,0)
+
+    local drag = false
+    local function set(v)
+        v = math.clamp(v, min, max)
+        lbl.Text = name .. ": " .. math.floor(v)
+        local r = (v-min)/(max-min)
+        fill.Size = UDim2.new(r, 0, 1, 0)
+        th.Position = UDim2.new(r, 0, 0.5, 0)
+        cb(v)
+    end
+    local function upd(i)
+        local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        set(min + (max-min) * r)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true upd(i)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then upd(i) end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end
+    end)
+end
+
+makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
+    Settings.Speed = v
+    if CurrentTrack and CurrentTrack.IsPlaying then pcall(function() CurrentTrack:AdjustSpeed(v) end) end
+end)
+makeSlider("Tốc chạy", 0, 1000, 16, function(v)
+    Settings.WalkSpeed = math.floor(v)
+    if hum then hum.WalkSpeed = math.floor(v) end
+end)
+
+-- ADD SCRIPT FORM
 local formFrame = Instance.new("Frame")
 formFrame.Size = UDim2.new(0, 320, 0, 260)
 formFrame.Position = UDim2.new(0.5, -160, 0.5, -130)
@@ -682,7 +800,7 @@ cancelBtn.MouseButton1Click:Connect(closeForm)
 mainGrid.addBtn.MouseButton1Click:Connect(openForm)
 otherGrid.addBtn.MouseButton1Click:Connect(openForm)
 
--- ===== XU LY CREATE =====
+-- XU LY CREATE
 createBtn.MouseButton1Click:Connect(function()
     local name = nameInput.Text
     local url = urlInput.Text
@@ -721,7 +839,7 @@ createBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ===== LOAD CLOUD KHI MO SCRIPT =====
+-- LOAD CLOUD KHI MO SCRIPT
 task.spawn(function()
     local data = CloudFetch()
 
