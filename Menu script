@@ -163,7 +163,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(1, -40, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "Xx GHOSTHUB xX"
+titleText.Text = "Ghost script"
 titleText.TextColor3 = WHITE
 titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 14
@@ -243,13 +243,13 @@ end)
 
 -- Nut mo Menu (icon)
 local openBtn = Instance.new("TextButton")
-openBtn.Size = UDim2.new(0, 50, 0, 50)
-openBtn.Position = UDim2.new(1, -65, 0, 15)
+openBtn.Size = UDim2.new(0, 90, 0, 40)
+openBtn.Position = UDim2.new(0.5, -45, 0.25, 0)
 openBtn.BackgroundColor3 = BLACK
-openBtn.Text = "G"
+openBtn.Text = "OPEN"
 openBtn.TextColor3 = WHITE
 openBtn.Font = Enum.Font.GothamBold
-openBtn.TextSize = 28
+openBtn.TextSize = 16
 openBtn.AutoButtonColor = false
 openBtn.BorderSizePixel = 0
 openBtn.Parent = sg
