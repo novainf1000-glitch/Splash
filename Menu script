@@ -243,20 +243,56 @@ end)
 
 -- Nut mo Menu (icon)
 local openBtn = Instance.new("TextButton")
-openBtn.Size = UDim2.new(0, 90, 0, 40)
-openBtn.Position = UDim2.new(0.5, -45, 0.25, 0)
+openBtn.Size = UDim2.new(0, 50, 0, 50)
+openBtn.Position = UDim2.new(0.5, -25, 0.25, 0)
 openBtn.BackgroundColor3 = BLACK
 openBtn.Text = "OPEN"
 openBtn.TextColor3 = WHITE
 openBtn.Font = Enum.Font.GothamBold
-openBtn.TextSize = 16
+openBtn.TextSize = 11
+openBtn.TextWrapped = true
 openBtn.AutoButtonColor = false
 openBtn.BorderSizePixel = 0
 openBtn.Parent = sg
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0, 10)
 addWhiteStroke(openBtn, 2)
 
+-- Kéo nút OPEN
+local openDrag = false
+local openDragStart, openStartPos
+
+openBtn.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        openDrag = true
+        openDragStart = i.Position
+        openStartPos = openBtn.Position
+        local conn
+        conn = i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then
+                openDrag = false
+                if conn then conn:Disconnect() end
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(i)
+    if openDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - openDragStart
+        openBtn.Position = UDim2.new(openStartPos.X.Scale, openStartPos.X.Offset + d.X, openStartPos.Y.Scale, openStartPos.Y.Offset + d.Y)
+    end
+end)
+
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        openDrag = false
+    end
+end)
+
+-- Mở/đóng menu khi bấm (không kéo)
+local openMoved = false
 openBtn.MouseButton1Click:Connect(function()
+    if openMoved then return end
     mainFrame.Visible = not mainFrame.Visible
 end)
 
