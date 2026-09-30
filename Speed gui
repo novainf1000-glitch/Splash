@@ -1,0 +1,75 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+local speed = 16 -- Tốc độ mặc định
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 230, 0, 110)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Frame.BorderColor3 = Color3.fromRGB(255,255,255)
+Frame.BorderSizePixel = 4
+Frame.Draggable = true
+Frame.Active = true
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Parent = Frame
+SpeedLabel.Size = UDim2.new(0, 230, 0, 45)
+SpeedLabel.Text = "Speed: " .. speed
+SpeedLabel.TextScaled = true
+SpeedLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+local IncreaseButton = Instance.new("TextButton")
+IncreaseButton.Parent = Frame
+IncreaseButton.Size = UDim2.new(0.5, 0, 0.3, 0)
+IncreaseButton.Position = UDim2.new(0, 0, 0.4, 0)
+IncreaseButton.Text = "+"
+IncreaseButton.TextScaled = true
+IncreaseButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+
+local DecreaseButton = Instance.new("TextButton")
+DecreaseButton.Parent = Frame
+DecreaseButton.Size = UDim2.new(0.5, 0, 0.3, 0)
+DecreaseButton.Position = UDim2.new(0.5, 0, 0.4, 0)
+DecreaseButton.Text = "-"
+DecreaseButton.TextScaled = true
+DecreaseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = Frame
+CloseButton.Size = UDim2.new(1, 0, 0.3, 0)
+CloseButton.Position = UDim2.new(0, 0, 0.7, 0)
+CloseButton.Text = "deleted"
+CloseButton.TextColor3 = Color3.fromRGB(255,0,0)
+CloseButton.TextScaled = true
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Chức năng tăng tốc
+IncreaseButton.MouseButton1Click:Connect(function()
+    speed = speed + 5
+    humanoid.WalkSpeed = speed
+    SpeedLabel.Text = "Speed: " .. speed
+end)
+
+-- Chức năng giảm tốc
+DecreaseButton.MouseButton1Click:Connect(function()
+    if speed > 5 then
+        speed = speed - 5
+        humanoid.WalkSpeed = speed
+        SpeedLabel.Text = "Speed: " .. speed
+    end
+end)
+
+-- Nút đóng GUI
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
