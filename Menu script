@@ -1,4 +1,4 @@
---[[ MENU SCRIPT ]]
+--[[ MENU SCRIPT - BLACK WHITE THEME ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -7,6 +7,23 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 local NPOINT_URL = "https://api.npoint.io/d442fac81151fd1f8c83"
+
+-- STYLE COLORS
+local BLACK = Color3.fromRGB(0, 0, 0)
+local WHITE = Color3.fromRGB(255, 255, 255)
+local DARKGRAY = Color3.fromRGB(20, 20, 20)
+local MIDGRAY = Color3.fromRGB(40, 40, 40)
+local LIGHTGRAY = Color3.fromRGB(80, 80, 80)
+
+-- Hàm tạo viền trắng
+local function addWhiteStroke(parent, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = WHITE
+    stroke.Thickness = thickness or 1.5
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
 
 local function getDeviceType()
     local ok, result = pcall(function()
@@ -110,6 +127,7 @@ local function CloudRemoveByName(targetName)
     return CloudSave()
 end
 
+-- GUI CHINH
 local sg = Instance.new("ScreenGui")
 sg.Name = "MenuGui"
 sg.ResetOnSpawn = false
@@ -119,20 +137,17 @@ sg.Parent = CoreGui
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0.85, 0, 0.75, 0)
 mainFrame.Position = UDim2.new(0.075, 0, 0.125, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BackgroundColor3 = BLACK
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = sg
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+addWhiteStroke(mainFrame, 2)
 
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(100, 100, 200)
-mainStroke.Thickness = 1.5
-mainStroke.Parent = mainFrame
-
+-- Title bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+titleBar.BackgroundColor3 = BLACK
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
@@ -140,7 +155,7 @@ Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 local titleFix = Instance.new("Frame")
 titleFix.Size = UDim2.new(1, 0, 0, 15)
 titleFix.Position = UDim2.new(0, 0, 1, -15)
-titleFix.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+titleFix.BackgroundColor3 = BLACK
 titleFix.BorderSizePixel = 0
 titleFix.Parent = titleBar
 
@@ -149,36 +164,39 @@ titleText.Size = UDim2.new(1, -40, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "Xx GHOSTHUB xX"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextColor3 = WHITE
 titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 14
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 22)
-closeBtn.Position = UDim2.new(1, -35, 0, 4)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Size = UDim2.new(0, 26, 0, 22)
+closeBtn.Position = UDim2.new(1, -31, 0, 4)
+closeBtn.BackgroundColor3 = BLACK
 closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.TextColor3 = WHITE
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 14
 closeBtn.AutoButtonColor = false
 closeBtn.BorderSizePixel = 0
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(closeBtn, 1.5)
 
 closeBtn.MouseButton1Click:Connect(function()
-    sg:Destroy()
+    mainFrame.Visible = false
 end)
 
+-- Sidebar
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 100, 1, -38)
 sidebar.Position = UDim2.new(0, 5, 0, 34)
-sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+sidebar.BackgroundColor3 = BLACK
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 8)
+addWhiteStroke(sidebar, 1.5)
 
 local sidebarLayout = Instance.new("UIListLayout")
 sidebarLayout.Padding = UDim.new(0, 4)
@@ -191,14 +209,17 @@ sidebarPad.PaddingLeft = UDim.new(0, 5)
 sidebarPad.PaddingRight = UDim.new(0, 5)
 sidebarPad.Parent = sidebar
 
+-- Content
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, -115, 1, -40)
 content.Position = UDim2.new(0, 110, 0, 34)
-content.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+content.BackgroundColor3 = BLACK
 content.BorderSizePixel = 0
 content.Parent = mainFrame
 Instance.new("UICorner", content).CornerRadius = UDim.new(0, 8)
+addWhiteStroke(content, 1.5)
 
+-- Drag
 local drag, ds, dp = false, nil, nil
 titleBar.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -220,43 +241,42 @@ UIS.InputChanged:Connect(function(i)
     end
 end)
 
+-- Nut mo Menu (icon)
 local openBtn = Instance.new("TextButton")
-openBtn.Size = UDim2.new(0, 40, 0, 40)
-openBtn.Position = UDim2.new(1, -55, 0, 15)
-openBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-openBtn.Text = "M"
-openBtn.TextColor3 = Color3.new(1, 1, 1)
+openBtn.Size = UDim2.new(0, 50, 0, 50)
+openBtn.Position = UDim2.new(1, -65, 0, 15)
+openBtn.BackgroundColor3 = BLACK
+openBtn.Text = "G"
+openBtn.TextColor3 = WHITE
 openBtn.Font = Enum.Font.GothamBold
-openBtn.TextSize = 20
+openBtn.TextSize = 28
 openBtn.AutoButtonColor = false
 openBtn.BorderSizePixel = 0
 openBtn.Parent = sg
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0, 8)
-
-local openStroke = Instance.new("UIStroke")
-openStroke.Color = Color3.fromRGB(100, 100, 200)
-openStroke.Thickness = 1.5
-openStroke.Parent = openBtn
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0, 10)
+addWhiteStroke(openBtn, 2)
 
 openBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
+-- Tab System
 local tabs = {}
 local currentTab = nil
 
 local function createTab(id, name)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    btn.BackgroundColor3 = BLACK
     btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    btn.TextColor3 = WHITE
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 12
     btn.AutoButtonColor = false
     btn.BorderSizePixel = 0
     btn.Parent = sidebar
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    local stroke = addWhiteStroke(btn, 1)
 
     local cf = Instance.new("Frame")
     cf.Size = UDim2.new(1, -10, 1, -10)
@@ -265,36 +285,42 @@ local function createTab(id, name)
     cf.Visible = false
     cf.Parent = content
 
-    tabs[id] = {btn = btn, content = cf}
+    tabs[id] = {btn = btn, content = cf, stroke = stroke}
 
     btn.MouseButton1Click:Connect(function()
         for tid, t in pairs(tabs) do
-            t.btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            t.btn.BackgroundColor3 = BLACK
             t.content.Visible = false
+            t.stroke.Color = WHITE
+            t.stroke.Thickness = 1
         end
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+        btn.BackgroundColor3 = MIDGRAY
         cf.Visible = true
+        stroke.Thickness = 2
         currentTab = id
     end)
 
     if not currentTab then
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+        btn.BackgroundColor3 = MIDGRAY
         cf.Visible = true
+        stroke.Thickness = 2
         currentTab = id
     end
 
     return cf
 end
 
+-- HOME TAB
 local homeTab = createTab("home", "Home")
 
 local avatarFrame = Instance.new("Frame")
 avatarFrame.Size = UDim2.new(0, 80, 0, 80)
 avatarFrame.Position = UDim2.new(0, 10, 0, 10)
-avatarFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+avatarFrame.BackgroundColor3 = BLACK
 avatarFrame.BorderSizePixel = 0
 avatarFrame.Parent = homeTab
 Instance.new("UICorner", avatarFrame).CornerRadius = UDim.new(0, 8)
+addWhiteStroke(avatarFrame, 1.5)
 
 local avatarImg = Instance.new("ImageLabel")
 avatarImg.Size = UDim2.new(1, -10, 1, -10)
@@ -322,22 +348,24 @@ infoText.Text =
     "Executor: " .. PlayerInfo.Executor .. "\n" ..
     "Platform: " .. PlayerInfo.Platform .. "\n" ..
     "Device: " .. PlayerInfo.Device
-infoText.TextColor3 = Color3.fromRGB(220, 220, 240)
+infoText.TextColor3 = WHITE
 infoText.Font = Enum.Font.Code
 infoText.TextSize = 11
 infoText.TextXAlignment = Enum.TextXAlignment.Left
 infoText.TextYAlignment = Enum.TextYAlignment.Top
 infoText.Parent = homeTab
+-- GRID TAB
 local function createGridTab(tabId, tabName)
     local tab = createTab(tabId, tabName)
 
     local searchFrame = Instance.new("Frame")
     searchFrame.Size = UDim2.new(1, -10, 0, 28)
     searchFrame.Position = UDim2.new(0, 5, 0, 5)
-    searchFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    searchFrame.BackgroundColor3 = BLACK
     searchFrame.BorderSizePixel = 0
     searchFrame.Parent = tab
     Instance.new("UICorner", searchFrame).CornerRadius = UDim.new(0, 6)
+    addWhiteStroke(searchFrame, 1)
 
     local searchBox = Instance.new("TextBox")
     searchBox.Size = UDim2.new(1, -20, 1, 0)
@@ -345,8 +373,8 @@ local function createGridTab(tabId, tabName)
     searchBox.BackgroundTransparency = 1
     searchBox.Text = ""
     searchBox.PlaceholderText = "Search Script..."
-    searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
-    searchBox.TextColor3 = Color3.fromRGB(220, 220, 240)
+    searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    searchBox.TextColor3 = WHITE
     searchBox.Font = Enum.Font.Gotham
     searchBox.TextSize = 12
     searchBox.TextXAlignment = Enum.TextXAlignment.Left
@@ -355,10 +383,10 @@ local function createGridTab(tabId, tabName)
 
     local counter = Instance.new("TextLabel")
     counter.Size = UDim2.new(0, 100, 0, 20)
-    counter.Position = UDim2.new(1, -105, 0, 8)
+    counter.Position = UDim2.new(1, -105, 0, 4)
     counter.BackgroundTransparency = 1
     counter.Text = "Scripts: 0"
-    counter.TextColor3 = Color3.fromRGB(180, 180, 200)
+    counter.TextColor3 = WHITE
     counter.Font = Enum.Font.GothamBold
     counter.TextSize = 11
     counter.TextXAlignment = Enum.TextXAlignment.Right
@@ -370,6 +398,7 @@ local function createGridTab(tabId, tabName)
     gridScroll.BackgroundTransparency = 1
     gridScroll.BorderSizePixel = 0
     gridScroll.ScrollBarThickness = 5
+    gridScroll.ScrollBarImageColor3 = WHITE
     gridScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     gridScroll.Parent = tab
 
@@ -404,9 +433,9 @@ local function createGridTab(tabId, tabName)
     local function createScriptBtn(data)
         local b = Instance.new("TextButton")
         b.Size = UDim2.new(0, 90, 0, 45)
-        b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        b.BackgroundColor3 = BLACK
         b.Text = data.name
-        b.TextColor3 = Color3.new(1, 1, 1)
+        b.TextColor3 = WHITE
         b.Font = Enum.Font.GothamBold
         b.TextSize = 10
         b.TextWrapped = true
@@ -414,19 +443,21 @@ local function createGridTab(tabId, tabName)
         b.BorderSizePixel = 0
         b.Parent = gridScroll
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+        addWhiteStroke(b, 1)
 
         local delBtn = Instance.new("TextButton")
         delBtn.Size = UDim2.new(0, 16, 0, 16)
         delBtn.Position = UDim2.new(1, -18, 0, 2)
-        delBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        delBtn.BackgroundColor3 = BLACK
         delBtn.Text = "x"
-        delBtn.TextColor3 = Color3.new(1, 1, 1)
+        delBtn.TextColor3 = WHITE
         delBtn.Font = Enum.Font.GothamBold
         delBtn.TextSize = 10
         delBtn.AutoButtonColor = false
         delBtn.BorderSizePixel = 0
         delBtn.Parent = b
         Instance.new("UICorner", delBtn).CornerRadius = UDim.new(1, 0)
+        addWhiteStroke(delBtn, 1)
 
         b.MouseButton1Click:Connect(function()
             local ok, err = pcall(function()
@@ -454,10 +485,10 @@ local function createGridTab(tabId, tabName)
         end)
 
         b.MouseEnter:Connect(function()
-            b.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
+            b.BackgroundColor3 = MIDGRAY
         end)
         b.MouseLeave:Connect(function()
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+            b.BackgroundColor3 = BLACK
         end)
 
         table.insert(scriptBtns, {btn = b, data = data})
@@ -466,15 +497,23 @@ local function createGridTab(tabId, tabName)
 
     local addBtn = Instance.new("TextButton")
     addBtn.Size = UDim2.new(0, 90, 0, 45)
-    addBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 150)
+    addBtn.BackgroundColor3 = BLACK
     addBtn.Text = "Add Script"
-    addBtn.TextColor3 = Color3.new(1, 1, 1)
+    addBtn.TextColor3 = WHITE
     addBtn.Font = Enum.Font.GothamBold
     addBtn.TextSize = 11
     addBtn.AutoButtonColor = false
     addBtn.BorderSizePixel = 0
     addBtn.Parent = gridScroll
     Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0, 6)
+    addWhiteStroke(addBtn, 1.5)
+
+    addBtn.MouseEnter:Connect(function()
+        addBtn.BackgroundColor3 = MIDGRAY
+    end)
+    addBtn.MouseLeave:Connect(function()
+        addBtn.BackgroundColor3 = BLACK
+    end)
 
     return {
         tab = tab,
@@ -499,6 +538,7 @@ setScroll.Size = UDim2.new(1, 0, 1, 0)
 setScroll.BackgroundTransparency = 1
 setScroll.BorderSizePixel = 0
 setScroll.ScrollBarThickness = 5
+setScroll.ScrollBarImageColor3 = WHITE
 setScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
 setScroll.Parent = setTab
 
@@ -509,34 +549,36 @@ setLayout.Parent = setScroll
 
 local lockToggle = Instance.new("TextButton")
 lockToggle.Size = UDim2.new(1, -10, 0, 30)
-lockToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+lockToggle.BackgroundColor3 = BLACK
 lockToggle.Text = "Lock Button: OFF"
-lockToggle.TextColor3 = Color3.new(1, 1, 1)
+lockToggle.TextColor3 = WHITE
 lockToggle.Font = Enum.Font.GothamBold
 lockToggle.TextSize = 12
 lockToggle.AutoButtonColor = false
 lockToggle.BorderSizePixel = 0
 lockToggle.Parent = setScroll
 Instance.new("UICorner", lockToggle).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(lockToggle, 1)
 
 local isLocked = false
 lockToggle.MouseButton1Click:Connect(function()
     isLocked = not isLocked
     lockToggle.Text = "Lock Button: " .. (isLocked and "ON" or "OFF")
-    lockToggle.BackgroundColor3 = isLocked and Color3.fromRGB(60, 60, 100) or Color3.fromRGB(40, 40, 55)
+    lockToggle.BackgroundColor3 = isLocked and MIDGRAY or BLACK
 end)
 
 local function makeInfoRow(text)
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -10, 0, 25)
-    lbl.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    lbl.BackgroundColor3 = BLACK
     lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 240)
+    lbl.TextColor3 = WHITE
     lbl.Font = Enum.Font.Code
     lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = setScroll
     Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 6)
+    addWhiteStroke(lbl, 1)
     local pad = Instance.new("UIPadding")
     pad.PaddingLeft = UDim.new(0, 10)
     pad.Parent = lbl
@@ -544,27 +586,24 @@ end
 
 makeInfoRow("Cloud: NPoint.io")
 makeInfoRow("Auto-sync: Enabled")
--- ADD SCRIPT FORM
+
+-- FORM ADD SCRIPT
 local formFrame = Instance.new("Frame")
 formFrame.Size = UDim2.new(0.8, 0, 0.7, 0)
 formFrame.Position = UDim2.new(0.1, 0, 0.15, 0)
-formFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+formFrame.BackgroundColor3 = BLACK
 formFrame.BorderSizePixel = 0
 formFrame.Visible = false
 formFrame.ZIndex = 10
 formFrame.Parent = sg
 Instance.new("UICorner", formFrame).CornerRadius = UDim.new(0, 10)
-
-local formStroke = Instance.new("UIStroke")
-formStroke.Color = Color3.fromRGB(100, 100, 200)
-formStroke.Thickness = 1.5
-formStroke.Parent = formFrame
+addWhiteStroke(formFrame, 2)
 
 local formTitle = Instance.new("TextLabel")
 formTitle.Size = UDim2.new(1, 0, 0, 28)
 formTitle.BackgroundTransparency = 1
 formTitle.Text = "Add New Script"
-formTitle.TextColor3 = Color3.new(1, 1, 1)
+formTitle.TextColor3 = WHITE
 formTitle.Font = Enum.Font.GothamBold
 formTitle.TextSize = 14
 formTitle.ZIndex = 11
@@ -573,39 +612,41 @@ formTitle.Parent = formFrame
 local nameInput = Instance.new("TextBox")
 nameInput.Size = UDim2.new(1, -20, 0, 30)
 nameInput.Position = UDim2.new(0, 10, 0, 36)
-nameInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+nameInput.BackgroundColor3 = BLACK
 nameInput.PlaceholderText = "Script Name"
-nameInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+nameInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
 nameInput.Text = ""
-nameInput.TextColor3 = Color3.fromRGB(220, 220, 240)
+nameInput.TextColor3 = WHITE
 nameInput.Font = Enum.Font.Gotham
 nameInput.TextSize = 12
 nameInput.ClearTextOnFocus = false
 nameInput.ZIndex = 11
 nameInput.Parent = formFrame
 Instance.new("UICorner", nameInput).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(nameInput, 1)
 
 local urlInput = Instance.new("TextBox")
 urlInput.Size = UDim2.new(1, -20, 0, 30)
 urlInput.Position = UDim2.new(0, 10, 0, 72)
-urlInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+urlInput.BackgroundColor3 = BLACK
 urlInput.PlaceholderText = "Script URL (raw link)"
-urlInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+urlInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
 urlInput.Text = ""
-urlInput.TextColor3 = Color3.fromRGB(220, 220, 240)
+urlInput.TextColor3 = WHITE
 urlInput.Font = Enum.Font.Gotham
 urlInput.TextSize = 12
 urlInput.ClearTextOnFocus = false
 urlInput.ZIndex = 11
 urlInput.Parent = formFrame
 Instance.new("UICorner", urlInput).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(urlInput, 1)
 
 local catLabel = Instance.new("TextLabel")
 catLabel.Size = UDim2.new(1, -20, 0, 18)
 catLabel.Position = UDim2.new(0, 10, 0, 108)
 catLabel.BackgroundTransparency = 1
 catLabel.Text = "Category:"
-catLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+catLabel.TextColor3 = WHITE
 catLabel.Font = Enum.Font.GothamBold
 catLabel.TextSize = 11
 catLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -617,9 +658,9 @@ local selectedCategory = "Main"
 local mainCatBtn = Instance.new("TextButton")
 mainCatBtn.Size = UDim2.new(0.45, 0, 0, 28)
 mainCatBtn.Position = UDim2.new(0, 10, 0, 130)
-mainCatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
+mainCatBtn.BackgroundColor3 = MIDGRAY
 mainCatBtn.Text = "Main"
-mainCatBtn.TextColor3 = Color3.new(1, 1, 1)
+mainCatBtn.TextColor3 = WHITE
 mainCatBtn.Font = Enum.Font.GothamBold
 mainCatBtn.TextSize = 12
 mainCatBtn.AutoButtonColor = false
@@ -627,13 +668,14 @@ mainCatBtn.BorderSizePixel = 0
 mainCatBtn.ZIndex = 11
 mainCatBtn.Parent = formFrame
 Instance.new("UICorner", mainCatBtn).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(mainCatBtn, 1)
 
 local otherCatBtn = Instance.new("TextButton")
 otherCatBtn.Size = UDim2.new(0.45, 0, 0, 28)
 otherCatBtn.Position = UDim2.new(0.55, 0, 0, 130)
-otherCatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+otherCatBtn.BackgroundColor3 = BLACK
 otherCatBtn.Text = "Other"
-otherCatBtn.TextColor3 = Color3.new(1, 1, 1)
+otherCatBtn.TextColor3 = WHITE
 otherCatBtn.Font = Enum.Font.GothamBold
 otherCatBtn.TextSize = 12
 otherCatBtn.AutoButtonColor = false
@@ -641,25 +683,26 @@ otherCatBtn.BorderSizePixel = 0
 otherCatBtn.ZIndex = 11
 otherCatBtn.Parent = formFrame
 Instance.new("UICorner", otherCatBtn).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(otherCatBtn, 1)
 
 mainCatBtn.MouseButton1Click:Connect(function()
     selectedCategory = "Main"
-    mainCatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
-    otherCatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    mainCatBtn.BackgroundColor3 = MIDGRAY
+    otherCatBtn.BackgroundColor3 = BLACK
 end)
 
 otherCatBtn.MouseButton1Click:Connect(function()
     selectedCategory = "Other"
-    otherCatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
-    mainCatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    otherCatBtn.BackgroundColor3 = MIDGRAY
+    mainCatBtn.BackgroundColor3 = BLACK
 end)
 
 local cancelBtn = Instance.new("TextButton")
 cancelBtn.Size = UDim2.new(0.45, 0, 0, 32)
 cancelBtn.Position = UDim2.new(0, 10, 0, 170)
-cancelBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+cancelBtn.BackgroundColor3 = BLACK
 cancelBtn.Text = "Cancel"
-cancelBtn.TextColor3 = Color3.new(1, 1, 1)
+cancelBtn.TextColor3 = WHITE
 cancelBtn.Font = Enum.Font.GothamBold
 cancelBtn.TextSize = 12
 cancelBtn.AutoButtonColor = false
@@ -667,13 +710,14 @@ cancelBtn.BorderSizePixel = 0
 cancelBtn.ZIndex = 11
 cancelBtn.Parent = formFrame
 Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(cancelBtn, 1.5)
 
 local createBtn = Instance.new("TextButton")
 createBtn.Size = UDim2.new(0.45, 0, 0, 32)
 createBtn.Position = UDim2.new(0.55, 0, 0, 170)
-createBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+createBtn.BackgroundColor3 = BLACK
 createBtn.Text = "Create"
-createBtn.TextColor3 = Color3.new(1, 1, 1)
+createBtn.TextColor3 = WHITE
 createBtn.Font = Enum.Font.GothamBold
 createBtn.TextSize = 12
 createBtn.AutoButtonColor = false
@@ -681,14 +725,15 @@ createBtn.BorderSizePixel = 0
 createBtn.ZIndex = 11
 createBtn.Parent = formFrame
 Instance.new("UICorner", createBtn).CornerRadius = UDim.new(0, 6)
+addWhiteStroke(createBtn, 1.5)
 
 local function openForm()
     formFrame.Visible = true
     nameInput.Text = ""
     urlInput.Text = ""
     selectedCategory = "Main"
-    mainCatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 100)
-    otherCatBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    mainCatBtn.BackgroundColor3 = MIDGRAY
+    otherCatBtn.BackgroundColor3 = BLACK
 end
 
 local function closeForm()
