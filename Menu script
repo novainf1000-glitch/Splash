@@ -8,10 +8,8 @@ local StarterGui = game:GetService("StarterGui")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- CLOUD CONFIG
 local NPOINT_URL = "https://api.npoint.io/d442fac81151fd1f8c83"
 
--- INFO NGUOI CHOI
 local function getDeviceType()
     local ok, result = pcall(function()
         if UIS.TouchEnabled and not UIS.KeyboardEnabled then
@@ -67,7 +65,6 @@ local PlayerInfo = {
     Device = getDeviceType(),
 }
 
--- SETTINGS
 local Settings = {Speed = 1, Locked = false, WalkSpeed = 16}
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
 local idCache = {}
@@ -81,7 +78,6 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
--- HAM ANIMATION
 local function getAnimator()
     if not hum then return nil end
     local a = hum:FindFirstChildOfClass("Animator")
@@ -114,7 +110,6 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- CLOUD SYNC
 local CloudData = {}
 
 local function CloudFetch()
@@ -161,7 +156,6 @@ local function CloudRemove(index)
     return false
 end
 
--- GUI CHINH
 local sg = Instance.new("ScreenGui")
 sg.Name = "MenuGui"
 sg.ResetOnSpawn = false
@@ -294,7 +288,6 @@ openBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- TAB SYSTEM
 local tabs = {}
 local currentTab = nil
 
@@ -339,7 +332,6 @@ local function createTab(id, name)
     return cf
 end
 
--- TAB HOME
 local homeTab = createTab("home", "Home")
 
 local avatarFrame = Instance.new("Frame")
@@ -392,7 +384,7 @@ welcome.TextColor3 = Color3.fromRGB(100, 200, 255)
 welcome.Font = Enum.Font.GothamBold
 welcome.TextSize = 11
 welcome.Parent = homeTab
--- HAM TAO GRID TAB
+
 local function createGridTab(tabId, tabName)
     local tab = createTab(tabId, tabName)
 
@@ -549,7 +541,6 @@ end
 local mainGrid = createGridTab("main", "Main")
 local otherGrid = createGridTab("other", "Other")
 
--- TAB SETTINGS
 local setTab = createTab("settings", "Settings")
 
 local setScroll = Instance.new("ScrollingFrame")
@@ -664,7 +655,6 @@ makeSlider("Tốc chạy", 0, 1000, 16, function(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
 
--- ADD SCRIPT FORM
 local formFrame = Instance.new("Frame")
 formFrame.Size = UDim2.new(0, 320, 0, 260)
 formFrame.Position = UDim2.new(0.5, -160, 0.5, -130)
@@ -811,7 +801,6 @@ cancelBtn.MouseButton1Click:Connect(closeForm)
 mainGrid.addBtn.MouseButton1Click:Connect(openForm)
 otherGrid.addBtn.MouseButton1Click:Connect(openForm)
 
--- XU LY CREATE
 createBtn.MouseButton1Click:Connect(function()
     local name = nameInput.Text
     local url = urlInput.Text
@@ -836,7 +825,7 @@ createBtn.MouseButton1Click:Connect(function()
 
         StarterGui:SetCore("SendNotification", {
             Title = "Success",
-            Text = "Script '" .. name .. "' added!",
+            Text = "Script added!",
             Duration = 3
         })
 
@@ -844,13 +833,12 @@ createBtn.MouseButton1Click:Connect(function()
     else
         StarterGui:SetCore("SendNotification", {
             Title = "Error",
-            Text = "Failed to save to cloud",
+            Text = "Failed to save",
             Duration = 3
         })
     end
 end)
 
--- LOAD CLOUD KHI MO SCRIPT
 task.spawn(function()
     local data = CloudFetch()
 
@@ -866,13 +854,7 @@ task.spawn(function()
 
         StarterGui:SetCore("SendNotification", {
             Title = "Cloud Loaded",
-            Text = #data .. " scripts synced",
-            Duration = 3
-        })
-    else
-        StarterGui:SetCore("SendNotification", {
-            Title = "Cloud Empty",
-            Text = "No scripts on cloud yet",
+            Text = #data .. " scripts",
             Duration = 3
         })
     end
