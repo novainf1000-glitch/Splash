@@ -1,4 +1,4 @@
---[[ GUI ANIMATION - VERTICAL + AUTO RESIZE ]]
+--[[ GUI ANIMATION - CLEAN ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -59,27 +59,6 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- AntiFling
-local AFLConn = nil
-local function AFStart()
-    if AFLConn then return end
-    AFLConn = RunService.Heartbeat:Connect(function()
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= player and p.Character then
-                local o = p.Character:FindFirstChild("HumanoidRootPart")
-                if o then pcall(function()
-                    o.CustomPhysicalProperties = PhysicalProperties.new(0,0,0,0,0)
-                    o.Velocity = Vector3.new(0, o.Velocity.Y, 0)
-                    o.RotVelocity = Vector3.new(0,0,0)
-                end) end
-            end
-        end
-    end)
-end
-local function AFStop()
-    if AFLConn then AFLConn:Disconnect() AFLConn = nil end
-end
-
 -- GUI
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
@@ -87,7 +66,7 @@ sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
--- Container dọc
+-- Container
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
 container.Size = UDim2.new(0, 130, 0, 200)
@@ -105,7 +84,6 @@ cs.Thickness = 1.5
 cs.Transparency = 0.3
 cs.Parent = container
 
--- Layout tự sắp xếp (không cần tính Y thủ công)
 local containerLayout = Instance.new("UIListLayout")
 containerLayout.Padding = UDim.new(0, 4)
 containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -118,24 +96,23 @@ containerPad.PaddingRight = UDim.new(0, 5)
 containerPad.PaddingBottom = UDim.new(0, 10)
 containerPad.Parent = container
 
--- ✅ Tự động update khi layout thay đổi
-containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    local contentHeight = containerLayout.AbsoluteContentSize.Y
-    container.Size = UDim2.new(0, 130, 0, contentHeight + 20)
-end)
-
--- ✅ Tự động co giãn container theo số nút
+-- Auto resize container
 local function updateContainerSize()
-    task.wait()  -- Đợi 1 frame cho UIListLayout cập nhật
     local contentHeight = containerLayout.AbsoluteContentSize.Y
-    local totalHeight = contentHeight + 20  -- Thêm padding top/bottom
-    container.Size = UDim2.new(0, 130, 0, totalHeight)
+    if contentHeight > 0 then
+        container.Size = UDim2.new(0, 130, 0, contentHeight + 20)
+    end
 end
+
+containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    updateContainerSize()
+end)
 
 -- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
+    if Settings.Locked then return end
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         cDrag = true
         cs_ = i.Position
@@ -150,7 +127,9 @@ container.InputBegan:Connect(function(i)
     end
 end)
 UIS.InputChanged:Connect(function(i)
-    if cDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+    if not cDrag then return end
+    if Settings.Locked then cDrag = false return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
         local d = i.Position - cs_
         container.Position = UDim2.new(cp_.X.Scale, cp_.X.Offset + d.X, cp_.Y.Scale, cp_.Y.Offset + d.Y)
     end
@@ -161,7 +140,7 @@ UIS.InputEnded:Connect(function(i)
     end
 end)
 
--- Danh sách nút để xóa
+-- Danh sách nút
 local allBtns = {}
 local markedBtns = {}
 
@@ -174,7 +153,6 @@ local function createBtn(name, id)
     f.Parent = container
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
 
-    -- Viền đỏ (khi Delete Mode)
     local redStroke = Instance.new("UIStroke")
     redStroke.Color = Color3.fromRGB(255, 50, 50)
     redStroke.Thickness = 2
@@ -194,7 +172,6 @@ local function createBtn(name, id)
     b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
-    -- Dấu X (khi đánh dấu xóa)
     local xMark = Instance.new("TextLabel")
     xMark.Size = UDim2.new(1, 0, 1, 0)
     xMark.BackgroundTransparency = 1
@@ -223,7 +200,6 @@ local function createBtn(name, id)
     end)
 
     b.MouseButton1Click:Connect(function()
-        -- Chế độ xóa
         if Settings.DeleteMode then
             marked = not marked
             xMark.Visible = marked
@@ -241,7 +217,6 @@ local function createBtn(name, id)
             return
         end
 
-        -- Chạy animation
         if ActiveButton == b and IsPlaying then
             StopTrack()
             ActiveButton = nil
@@ -264,10 +239,8 @@ local function createBtn(name, id)
         end
     end)
 
-     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
-     -- Không gọi updateContainerSize ở đây
-     -- Đã tự động qua AbsoluteContentSize listener
-     return b
+    table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
+    return b
 end
 
 -- 14 NÚT
@@ -285,8 +258,7 @@ createBtn("Cú móc", 96853318026158)
 createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Good Dropkick", 71324709061585)
-
--- Nút xóa 🗑️
+-- Nút xóa
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
@@ -319,7 +291,7 @@ delBtn.MouseButton1Click:Connect(function()
         f:Destroy()
     end
     markedBtns = {}
-    task.wait(0.1)  -- ✅ THÊM dòng này
+    task.wait(0.1)
     updateContainerSize()
     StarterGui:SetCore("SendNotification", {
         Title = "Deleted",
@@ -328,7 +300,7 @@ delBtn.MouseButton1Click:Connect(function()
     })
 end)
 
--- SETTINGS PANEL
+-- PANEL SETTINGS
 local panel = Instance.new("Frame")
 panel.Size = UDim2.new(0, 240, 0, 420)
 panel.Position = UDim2.new(1, -255, 0, 60)
@@ -377,7 +349,7 @@ UIS.InputChanged:Connect(function(i)
     end
 end)
 
--- Scroll cho panel
+-- Scroll
 local pScroll = Instance.new("ScrollingFrame")
 pScroll.Size = UDim2.new(1, -10, 1, -40)
 pScroll.Position = UDim2.new(0, 5, 0, 35)
@@ -397,7 +369,7 @@ pLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     pScroll.CanvasSize = UDim2.new(0, 0, 0, pLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- TOGGLE
+-- Toggle
 local function makeToggle(name, cb)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -445,7 +417,7 @@ makeToggle("Delete Mode", function(a)
     delFrame.Visible = a
 end)
 
--- SCRIPT BUTTONS
+-- Script ngoài
 local function makeScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -473,7 +445,7 @@ makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-304
 makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
 makeScriptBtn("Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
--- SLIDER
+-- Slider
 local function makeSlider(name, min, max, def, cb)
     local c2 = Instance.new("Frame")
     c2.Size = UDim2.new(1, -10, 0, 42)
@@ -566,10 +538,11 @@ makeSlider("Size", 1, 13, 7, function(v)
             end
         end
     end
+    task.wait(0.1)
     updateContainerSize()
 end)
 
--- ICON SETTINGS
+-- Icon Settings
 local sFrame = Instance.new("Frame")
 sFrame.Size = UDim2.new(0, 32, 0, 32)
 sFrame.Position = UDim2.new(1, -45, 0, 15)
