@@ -118,16 +118,17 @@ containerPad.PaddingRight = UDim.new(0, 5)
 containerPad.PaddingBottom = UDim.new(0, 10)
 containerPad.Parent = container
 
+-- ✅ Tự động update khi layout thay đổi
+containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    local contentHeight = containerLayout.AbsoluteContentSize.Y
+    container.Size = UDim2.new(0, 130, 0, contentHeight + 20)
+end)
+
 -- ✅ Tự động co giãn container theo số nút
 local function updateContainerSize()
-    local count = 0
-    for _, child in pairs(container:GetChildren()) do
-        if child:IsA("TextButton") and child.Visible then
-            count = count + 1
-        end
-    end
-    local btnHeight = Settings.BtnSize * 2.8 + 4
-    local totalHeight = 20 + count * btnHeight
+    task.wait()  -- Đợi 1 frame cho UIListLayout cập nhật
+    local contentHeight = containerLayout.AbsoluteContentSize.Y
+    local totalHeight = contentHeight + 20  -- Thêm padding top/bottom
     container.Size = UDim2.new(0, 130, 0, totalHeight)
 end
 
@@ -263,9 +264,10 @@ local function createBtn(name, id)
         end
     end)
 
-    table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
-    updateContainerSize()
-    return b
+     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
+     -- Không gọi updateContainerSize ở đây
+     -- Đã tự động qua AbsoluteContentSize listener
+     return b
 end
 
 -- 14 NÚT
@@ -317,6 +319,7 @@ delBtn.MouseButton1Click:Connect(function()
         f:Destroy()
     end
     markedBtns = {}
+    task.wait(0.1)  -- ✅ THÊM dòng này
     updateContainerSize()
     StarterGui:SetCore("SendNotification", {
         Title = "Deleted",
