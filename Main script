@@ -1,4 +1,4 @@
---[[ GUI ANIMATION - VERTICAL STACK ]]
+--[[ GUI ANIMATION - VERTICAL + AUTO RESIZE ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -7,7 +7,14 @@ local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
-local Settings = {Speed = 1, WalkSpeed = 16}
+local Settings = {
+    Speed = 1,
+    WalkSpeed = 16,
+    Locked = false,
+    HideMode = false,
+    DeleteMode = false,
+    BtnSize = 7,
+}
 
 local char = player.Character or player.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
@@ -52,17 +59,38 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- GUI CHINH
+-- AntiFling
+local AFLConn = nil
+local function AFStart()
+    if AFLConn then return end
+    AFLConn = RunService.Heartbeat:Connect(function()
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local o = p.Character:FindFirstChild("HumanoidRootPart")
+                if o then pcall(function()
+                    o.CustomPhysicalProperties = PhysicalProperties.new(0,0,0,0,0)
+                    o.Velocity = Vector3.new(0, o.Velocity.Y, 0)
+                    o.RotVelocity = Vector3.new(0,0,0)
+                end) end
+            end
+        end
+    end)
+end
+local function AFStop()
+    if AFLConn then AFLConn:Disconnect() AFLConn = nil end
+end
+
+-- GUI
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
--- Container (dạng cột dọc)
+-- Container dọc
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
-container.Size = UDim2.new(0, 130, 0, 560)
+container.Size = UDim2.new(0, 130, 0, 200)
 container.Position = UDim2.new(0, 10, 0.05, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
@@ -77,7 +105,33 @@ cs.Thickness = 1.5
 cs.Transparency = 0.3
 cs.Parent = container
 
--- Kéo CONTAINER (cả cụm di chuyển)
+-- Layout tự sắp xếp (không cần tính Y thủ công)
+local containerLayout = Instance.new("UIListLayout")
+containerLayout.Padding = UDim.new(0, 4)
+containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+containerLayout.Parent = container
+
+local containerPad = Instance.new("UIPadding")
+containerPad.PaddingTop = UDim.new(0, 10)
+containerPad.PaddingLeft = UDim.new(0, 5)
+containerPad.PaddingRight = UDim.new(0, 5)
+containerPad.PaddingBottom = UDim.new(0, 10)
+containerPad.Parent = container
+
+-- ✅ Tự động co giãn container theo số nút
+local function updateContainerSize()
+    local count = 0
+    for _, child in pairs(container:GetChildren()) do
+        if child:IsA("TextButton") and child.Visible then
+            count = count + 1
+        end
+    end
+    local btnHeight = Settings.BtnSize * 2.8 + 4
+    local totalHeight = 20 + count * btnHeight
+    container.Size = UDim2.new(0, 130, 0, totalHeight)
+end
+
+-- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
@@ -106,33 +160,87 @@ UIS.InputEnded:Connect(function(i)
     end
 end)
 
--- Hàm tạo nút (không kéo, chỉ bấm)
-local function createBtn(name, id, yPos)
+-- Danh sách nút để xóa
+local allBtns = {}
+local markedBtns = {}
+
+-- Hàm tạo nút
+local function createBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    f.BorderSizePixel = 0
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+
+    -- Viền đỏ (khi Delete Mode)
+    local redStroke = Instance.new("UIStroke")
+    redStroke.Color = Color3.fromRGB(255, 50, 50)
+    redStroke.Thickness = 2
+    redStroke.Enabled = false
+    redStroke.Name = "RedStroke"
+    redStroke.Parent = f
+
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 30)
-    b.Position = UDim2.new(0, 5, 0, yPos)
+    b.Size = UDim2.new(1, 0, 1, 0)
     b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     b.Text = name
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 11
+    b.TextSize = math.max(8, Settings.BtnSize)
     b.AutoButtonColor = false
     b.BorderSizePixel = 0
-    b.Parent = container
+    b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
+    -- Dấu X (khi đánh dấu xóa)
+    local xMark = Instance.new("TextLabel")
+    xMark.Size = UDim2.new(1, 0, 1, 0)
+    xMark.BackgroundTransparency = 1
+    xMark.Text = "X"
+    xMark.TextColor3 = Color3.fromRGB(255, 50, 50)
+    xMark.TextStrokeTransparency = 0
+    xMark.TextStrokeColor3 = Color3.new(0, 0, 0)
+    xMark.Font = Enum.Font.GothamBold
+    xMark.TextSize = 20
+    xMark.Visible = false
+    xMark.Name = "XMark"
+    xMark.ZIndex = 5
+    xMark.Parent = f
+
+    local marked = false
+
     b.MouseEnter:Connect(function()
-        if ActiveButton ~= b then
+        if not Settings.DeleteMode and ActiveButton ~= b then
             b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         end
     end)
     b.MouseLeave:Connect(function()
-        if ActiveButton ~= b then
+        if not Settings.DeleteMode and ActiveButton ~= b then
             b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         end
     end)
 
     b.MouseButton1Click:Connect(function()
+        -- Chế độ xóa
+        if Settings.DeleteMode then
+            marked = not marked
+            xMark.Visible = marked
+            if marked then
+                local exists = false
+                for _, m in pairs(markedBtns) do
+                    if m == f then exists = true break end
+                end
+                if not exists then table.insert(markedBtns, f) end
+            else
+                for i, m in pairs(markedBtns) do
+                    if m == f then table.remove(markedBtns, i) break end
+                end
+            end
+            return
+        end
+
+        -- Chạy animation
         if ActiveButton == b and IsPlaying then
             StopTrack()
             ActiveButton = nil
@@ -154,29 +262,73 @@ local function createBtn(name, id, yPos)
             end
         end
     end)
+
+    table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
+    updateContainerSize()
     return b
 end
 
--- 14 NÚT DỌC (không icon)
-createBtn("Spin", 133180711707319, 10)
-createBtn("Slap", 118273721275238, 44)
-createBtn("Drop kick", 122990265693059, 78)
-createBtn("Back kick", 90161679204210, 112)
-createBtn("Super Spin Kick", 88814172353660, 146)
-createBtn("Super Punch", 129850328316768, 180)
-createBtn("Somersault", 77072646896519, 214)
-createBtn("MMA kick", 112687071860501, 248)
-createBtn("Đá phản lực", 98481111917153, 282)
-createBtn("Đá x3", 107652660092239, 316)
-createBtn("Cú móc", 96853318026158, 350)
-createBtn("Slash", 82407225122935, 384)
-createBtn("Best Dropkick", 120732463359559, 418)
-createBtn("Good Dropkick", 71324709061585, 452)
+-- 14 NÚT
+createBtn("Spin", 133180711707319)
+createBtn("Slap", 118273721275238)
+createBtn("Drop kick", 122990265693059)
+createBtn("Back kick", 90161679204210)
+createBtn("Super Spin Kick", 88814172353660)
+createBtn("Super Punch", 129850328316768)
+createBtn("Somersault", 77072646896519)
+createBtn("MMA kick", 112687071860501)
+createBtn("Đá phản lực", 98481111917153)
+createBtn("Đá x3", 107652660092239)
+createBtn("Cú móc", 96853318026158)
+createBtn("Slash", 82407225122935)
+createBtn("Best Dropkick", 120732463359559)
+createBtn("Good Dropkick", 71324709061585)
+
+-- Nút xóa 🗑️
+local delFrame = Instance.new("Frame")
+delFrame.Size = UDim2.new(0, 40, 0, 40)
+delFrame.Position = UDim2.new(1, -55, 1, -60)
+delFrame.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+delFrame.BorderSizePixel = 0
+delFrame.Active = true
+delFrame.Visible = false
+delFrame.Name = "DeleteAllBtn"
+delFrame.Parent = sg
+Instance.new("UICorner", delFrame).CornerRadius = UDim.new(0, 8)
+
+local delBtn = Instance.new("TextButton")
+delBtn.Size = UDim2.new(1, 0, 1, 0)
+delBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+delBtn.Text = "X"
+delBtn.TextColor3 = Color3.new(1, 1, 1)
+delBtn.Font = Enum.Font.GothamBold
+delBtn.TextSize = 20
+delBtn.AutoButtonColor = false
+delBtn.BorderSizePixel = 0
+delBtn.Parent = delFrame
+Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 8)
+
+delBtn.MouseButton1Click:Connect(function()
+    local count = #markedBtns
+    for _, f in pairs(markedBtns) do
+        for i, ref in pairs(allBtns) do
+            if ref.frame == f then table.remove(allBtns, i) break end
+        end
+        f:Destroy()
+    end
+    markedBtns = {}
+    updateContainerSize()
+    StarterGui:SetCore("SendNotification", {
+        Title = "Deleted",
+        Text = count .. " buttons removed",
+        Duration = 3
+    })
+end)
 
 -- SETTINGS PANEL
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 220, 0, 180)
-panel.Position = UDim2.new(1, -235, 0, 60)
+panel.Size = UDim2.new(0, 240, 0, 420)
+panel.Position = UDim2.new(1, -255, 0, 60)
 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 panel.BorderSizePixel = 0
 panel.Visible = false
@@ -201,7 +353,7 @@ panelTitle.BorderSizePixel = 0
 panelTitle.Parent = panel
 Instance.new("UICorner", panelTitle).CornerRadius = UDim.new(0, 10)
 
--- Kéo panel qua title
+-- Kéo panel
 local pDrag, pds, pdp = false, nil, nil
 panelTitle.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -222,24 +374,124 @@ UIS.InputChanged:Connect(function(i)
     end
 end)
 
+-- Scroll cho panel
+local pScroll = Instance.new("ScrollingFrame")
+pScroll.Size = UDim2.new(1, -10, 1, -40)
+pScroll.Position = UDim2.new(0, 5, 0, 35)
+pScroll.BackgroundTransparency = 1
+pScroll.BorderSizePixel = 0
+pScroll.ScrollBarThickness = 5
+pScroll.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
+pScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+pScroll.Parent = panel
+
+local pLayout = Instance.new("UIListLayout")
+pLayout.Padding = UDim.new(0, 5)
+pLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pLayout.Parent = pScroll
+
+pLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    pScroll.CanvasSize = UDim2.new(0, 0, 0, pLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- TOGGLE
+local function makeToggle(name, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    b.Text = name .. ": OFF"
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = pScroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    local active = false
+    b.MouseButton1Click:Connect(function()
+        active = not active
+        b.Text = name .. ": " .. (active and "ON" or "OFF")
+        b.BackgroundColor3 = active and Color3.fromRGB(60, 60, 100) or Color3.fromRGB(40, 40, 55)
+        cb(active)
+    end)
+    return b
+end
+
+makeToggle("Lock Button", function(a)
+    Settings.Locked = a
+end)
+
+makeToggle("Hide Button", function(a)
+    Settings.HideMode = a
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then
+            ref.frame.Visible = not a
+        end
+    end
+end)
+
+makeToggle("Delete Mode", function(a)
+    Settings.DeleteMode = a
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then
+            local stroke = ref.frame:FindFirstChild("RedStroke")
+            if stroke then stroke.Enabled = a end
+            if a then ref.frame.Visible = true end
+        end
+    end
+    delFrame.Visible = a
+end)
+
+-- SCRIPT BUTTONS
+local function makeScriptBtn(name, url)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(50, 70, 150)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = pScroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        pcall(function()
+            loadstring(game:HttpGet(url))()
+        end)
+        b.Text = name .. " OK"
+        task.wait(1)
+        b.Text = name
+    end)
+    return b
+end
+
+makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
+makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
+makeScriptBtn("Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
+
 -- SLIDER
-local function makeSlider(name, min, max, def, y, cb)
+local function makeSlider(name, min, max, def, cb)
+    local c2 = Instance.new("Frame")
+    c2.Size = UDim2.new(1, -10, 0, 42)
+    c2.BackgroundTransparency = 1
+    c2.Parent = pScroll
+
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -20, 0, 18)
-    lbl.Position = UDim2.new(0, 10, 0, y)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
     lbl.BackgroundTransparency = 1
     lbl.Text = name .. ": " .. def
     lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 11
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = panel
+    lbl.Parent = c2
 
     local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, -20, 0, 12)
-    bar.Position = UDim2.new(0, 10, 0, y + 20)
+    bar.Size = UDim2.new(1, 0, 0, 12)
+    bar.Position = UDim2.new(0, 0, 0, 24)
     bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    bar.Parent = panel
+    bar.Parent = c2
     Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
 
     local rel0 = (def - min) / (max - min)
@@ -288,16 +540,30 @@ local function makeSlider(name, min, max, def, y, cb)
     end)
 end
 
-makeSlider("Tốc độ Anim", 0, 5, 1, 45, function(v)
+makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then
         pcall(function() CurrentTrack:AdjustSpeed(v) end)
     end
 end)
 
-makeSlider("Tốc chạy", 0, 1000, 16, 105, function(v)
+makeSlider("Tốc chạy", 0, 1000, 16, function(v)
     Settings.WalkSpeed = math.floor(v)
     if hum then hum.WalkSpeed = math.floor(v) end
+end)
+
+makeSlider("Size", 1, 13, 7, function(v)
+    local size = math.floor(v)
+    Settings.BtnSize = size
+    for _, ref in pairs(allBtns) do
+        if ref.frame and ref.frame.Parent then
+            ref.frame.Size = UDim2.new(1, 0, 0, size * 2.8)
+            if ref.btn then
+                ref.btn.TextSize = math.max(8, size)
+            end
+        end
+    end
+    updateContainerSize()
 end)
 
 -- ICON SETTINGS
