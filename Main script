@@ -221,6 +221,7 @@ UIS.InputChanged:Connect(function(i)
         panel.Position = UDim2.new(pdp.X.Scale, pdp.X.Offset + d.X, pdp.Y.Scale, pdp.Y.Offset + d.Y)
     end
 end)
+
 -- SLIDER
 local function makeSlider(name, min, max, def, y, cb)
     local lbl = Instance.new("TextLabel")
