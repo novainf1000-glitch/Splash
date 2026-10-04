@@ -181,17 +181,131 @@ end
 local function stopFling()
     hiddenfling = false
     flingThread = nil
+-- ===== FLING + NOCLIP + PHYSICS-SAFE =====
+local hiddenfling = false
+local flingThread = nil
+local noclipConn = nil
+local safeLandConn = nil
+
+-- NOCLIP
+local function startNoclip()
+    if noclipConn then return end
+    noclipConn = RunService.Heartbeat:Connect(function()
+        local c = player.Character
+        if not c then return end
+        for _, part in pairs(c:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if part.CanCollide then part.CanCollide = false end
+                if part.CanTouch then part.CanTouch = false end
+            end
+        end
+    end)
+end
+
+local function stopNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    local c = player.Character
+    if c then
+        for _, part in pairs(c:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.CanTouch = true
+            end
+        end
+    end
+end
+
+-- ✅ SAFE LAND: Giảm velocity mỗi frame khi rơi → không chết
+local function startSafeLand()
+    if safeLandConn then return end
+    safeLandConn = RunService.Heartbeat:Connect(function()
+        local c = player.Character
+        if not c then return end
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local h = c:FindFirstChildOfClass("Humanoid")
+        if hrp and h then
+            -- Nếu đang rơi nhanh → giảm velocity
+            if hrp.Velocity.Y < -50 then
+                pcall(function()
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X * 0.5, -30, hrp.Velocity.Z * 0.5)
+                end)
+            end
+            -- Luôn giữ HP = 100 trong lúc rơi
+            if h.Health < h.MaxHealth then
+                pcall(function()
+                    h.Health = h.MaxHealth
+                end)
+            end
+        end
+    end)
+end
+
+local function stopSafeLand()
+    if safeLandConn then
+        safeLandConn:Disconnect()
+        safeLandConn = nil
+    end
+end
+
+-- FLING LOOP (velocity nhỏ hơn)
+local function flingLoop()
+    local lp = player
+    local movel = 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        local c = lp.Character
+        local hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local vel = hrp.Velocity
+            -- ✅ Giảm velocity — không dùng 10000
+            hrp.Velocity = vel * 500 + Vector3.new(0, 500, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel * 10, 0)
+            movel = -movel
+        end
+    end
+end
+
+local function startFling()
+    if hiddenfling then return end
+    
+    -- Reset velocity
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+    end
+    
+    startNoclip()
+    startSafeLand()  -- ✅ Bật safe land
+    hiddenfling = true
+    flingThread = task.spawn(flingLoop)
+end
+
+local function stopFling()
+    hiddenfling = false
+    flingThread = nil
     
     task.wait(0.2)
     
-    -- Reset velocity + state
+    -- Reset velocity ngay
     local c = player.Character
     if c then
         local hrp = c:FindFirstChild("HumanoidRootPart")
         local h = c:FindFirstChildOfClass("Humanoid")
         if hrp then
             pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
                 hrp.RotVelocity = Vector3.new(0, 0, 0)
             end)
         end
@@ -205,23 +319,21 @@ local function stopFling()
     
     stopNoclip()
     
-    -- Đợi nhân vật tiếp đất an toàn (HP lock vẫn chạy)
-    task.wait(2)
+    -- ✅ Đợi 3s cho nhân vật rơi xuống an toàn (safe land vẫn chạy)
+    task.wait(3)
     
-    -- Force HP lần cuối
+    -- Force HP cuối
     local c2 = player.Character
     if c2 then
         local h2 = c2:FindFirstChildOfClass("Humanoid")
         if h2 then
             pcall(function()
-                h2.MaxHealth = 100
-                h2.Health = 100
+                h2.Health = h2.MaxHealth
             end)
         end
     end
     
-    task.wait(0.3)
-    stopHPLock()
+    stopSafeLand()  -- ✅ Tắt safe land
 end
 
 -- ===== GUI =====
