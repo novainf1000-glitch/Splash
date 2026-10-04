@@ -107,99 +107,73 @@ local function stopNoclipPlayer()
     end
 end
 
--- ✅ FLING SYSTEM V6 (AlignPosition + AlignOrientation)
+-- ✅ FLING THỦ CÔNG (chỉ fling khi va chạm)
 local hiddenfling = false
-local alignPos = nil
-local alignOri = nil
-local attachMy = nil
-local flingConn = nil
+local flingTouchConn = nil
+
+local function onTouched(otherPart)
+    if not hiddenfling then return end
+    
+    local c = player.Character
+    if not c then return end
+    
+    -- Kiểm tra part này thuộc về ai
+    local otherChar = otherPart:FindFirstAncestorOfClass("Model")
+    if not otherChar then return end
+    
+    local otherHum = otherChar:FindFirstChildOfClass("Humanoid")
+    if not otherHum then return end
+    
+    -- Nếu là chính mình thì bỏ qua
+    if otherChar == c then return end
+    
+    -- Lấy HRP của người khác
+    local otherHRP = otherChar:FindFirstChild("HumanoidRootPart")
+    if not otherHRP then return end
+    
+    -- ✅ FLING NGƯỜI KHÁC
+    local power = Settings.FlingPower
+    pcall(function()
+        otherHRP.Velocity = Vector3.new(
+            math.random(-power, power),
+            power,
+            math.random(-power, power)
+        )
+        otherHRP.RotVelocity = Vector3.new(
+            math.random(-power, power),
+            math.random(-power, power),
+            math.random(-power, power)
+        )
+    end)
+end
 
 local function startFling()
     if hiddenfling then return end
     hiddenfling = true
     
+    -- Gắn sự kiện Touched vào nhân vật mình
     local c = player.Character
     if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
     
-    -- Attachment gắn vào HRP
-    attachMy = Instance.new("Attachment")
-    attachMy.Name = "FlingAttach"
-    attachMy.Parent = hrp
-    
-    -- AlignPosition — di chuyển tới vị trí
-    alignPos = Instance.new("AlignPosition")
-    alignPos.Name = "FlingAlignPos"
-    alignPos.Attachment0 = attachMy
-    alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
-    alignPos.Position = hrp.Position
-    alignPos.MaxForce = math.huge
-    alignPos.Responsiveness = 200
-    alignPos.Parent = hrp
-    
-    -- AlignOrientation — xoay hướng
-    alignOri = Instance.new("AlignOrientation")
-    alignOri.Name = "FlingAlignOri"
-    alignOri.Attachment0 = attachMy
-    alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
-    alignOri.MaxTorque = math.huge
-    alignOri.Responsiveness = 200
-    alignOri.Parent = hrp
-    
-    flingConn = RunService.Heartbeat:Connect(function()
-        local c2 = player.Character
-        if not c2 then return end
-        local hrp2 = c2:FindFirstChild("HumanoidRootPart")
-        if not hrp2 or not alignPos then return end
-        
-        -- Tìm người gần
-        local closest = nil
-        local closestDist = 50
-        for _, other in pairs(Players:GetPlayers()) do
-            if other ~= player and other.Character then
-                local o = other.Character:FindFirstChild("HumanoidRootPart")
-                if o then
-                    local d = (hrp2.Position - o.Position).Magnitude
-                    if d < closestDist then
-                        closest = o
-                        closestDist = d
-                    end
-                end
-            end
-        end
-        
-        if closest then
-            -- Di chuyển tới người
-            alignPos.Position = closest.Position
-            -- Giữ hướng bay
-            alignOri.CFrame = CFrame.new(Vector3.new(0, 0, 0), closest.Position)
-        else
-            -- Đứng yên
-            alignPos.Position = hrp2.Position
-            alignOri.CFrame = CFrame.new()
+    flingTouchConn = c.DescendantAdded:Connect(function(desc)
+        if desc:IsA("BasePart") then
+            desc.Touched:Connect(onTouched)
         end
     end)
+    
+    -- Gắn cho các part hiện có
+    for _, part in pairs(c:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Touched:Connect(onTouched)
+        end
+    end
 end
 
 local function stopFling()
     hiddenfling = false
-    
-    if alignPos then alignPos:Destroy() alignPos = nil end
-    if alignOri then alignOri:Destroy() alignOri = nil end
-    if attachMy then attachMy:Destroy() attachMy = nil end
-    if flingConn then flingConn:Disconnect() flingConn = nil end
-    
-    -- Reset velocity khi tắt
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
+    if flingTouchConn then
+        flingTouchConn:Disconnect()
+        flingTouchConn = nil
     end
 end
 
