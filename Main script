@@ -33,6 +33,72 @@ local function getAnimator()
 end
 
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
+-- ===== FLING SYSTEM (SAFE) =====
+local hiddenfling = false
+local flingThread = nil
+
+local function flingLoop()
+    local lp = player
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
+end
+
+local function startFling()
+    if hiddenfling then return end
+    -- Reset trước khi bật để tránh velocity cũ
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+    end
+    hiddenfling = true
+    flingThread = task.spawn(flingLoop)
+end
+
+local function stopFling()
+    hiddenfling = false
+    flingThread = nil
+    
+    -- ✅ Đợi 0.1s để frame cuối chạy xong
+    task.wait(0.1)
+    
+    -- ✅ Reset velocity + RotVelocity
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local hum = c:FindFirstChildOfClass("Humanoid")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+        if hum then
+            pcall(function()
+                hum.PlatformStand = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end)
+        end
+    end
+end
 
 local function LoadTrack(id)
     local a = getAnimator()
