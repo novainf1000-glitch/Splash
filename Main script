@@ -94,6 +94,45 @@ local function flingLoop()
 end
 
 local function startFling()
+-- ✅ NOCLIP PLAYER (chỉ xuyên người chơi, không xuyên tường)
+local noclipPlayerConn = nil
+
+local function startNoclipPlayer()
+    if noclipPlayerConn then return end
+    noclipPlayerConn = RunService.Heartbeat:Connect(function()
+        for _, other in pairs(Players:GetPlayers()) do
+            if other ~= player and other.Character then
+                for _, part in pairs(other.Character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        pcall(function()
+                            part.CanCollide = false
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopNoclipPlayer()
+    if noclipPlayerConn then
+        noclipPlayerConn:Disconnect()
+        noclipPlayerConn = nil
+    end
+    -- Khôi phục CanCollide cho người khác
+    for _, other in pairs(Players:GetPlayers()) do
+        if other ~= player and other.Character then
+            for _, part in pairs(other.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    pcall(function()
+                        part.CanCollide = true
+                    end)
+                end
+            end
+        end
+    end
+end
+
     if hiddenfling then return end
     hiddenfling = true
     flingThread = task.spawn(flingLoop)
@@ -114,7 +153,7 @@ sg.Parent = CoreGui
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
 container.Size = UDim2.new(0, 130, 0, 200)
-container.Position = UDim2.new(0, 0.2, 0.05, 0)
+container.Position = UDim2.new(0, 19, 0.2, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
 container.BorderSizePixel = 0
@@ -462,6 +501,14 @@ makeToggle("Fling", function(a)
     end
 end)
 
+makeToggle("Noclip Player", function(a)
+    if a then
+        startNoclipPlayer()
+    else
+        stopNoclipPlayer()
+    end
+end)
+
 local function makeScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -620,3 +667,6 @@ end)
 sBtn.MouseLeave:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
 end)
+
+-- ✅ Tự động bật Noclip Player khi mở script
+startNoclipPlayer()
