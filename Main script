@@ -107,46 +107,85 @@ local function stopNoclipPlayer()
     end
 end
 
--- ✅ FLING SYSTEM + SAFE FALL
+-- ✅ FLING SYSTEM (BodyVelocity — không chết)
 local hiddenfling = false
-local flingThread = nil
-
-local function flingLoop()
-    local lp = player
-    local movel = 0.1
-    while hiddenfling do
-        RunService.Heartbeat:Wait()
-        local c = lp.Character
-        local hrp = c and c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local power = Settings.FlingPower
-            local vel = hrp.Velocity
-            
-            -- ✅ Giới hạn Y âm (chống rơi nhanh)
-            local newY = vel.Y
-            if newY < -50 then
-                newY = -30
-            end
-            
-            hrp.Velocity = Vector3.new(vel.X * power, newY, vel.Z * power)
-            RunService.RenderStepped:Wait()
-            hrp.Velocity = Vector3.new(vel.X, newY, vel.Z)
-            RunService.Stepped:Wait()
-            hrp.Velocity = Vector3.new(vel.X + movel, newY, vel.Z + movel)
-            movel = -movel
-        end
-    end
-end
+local flingBV = nil
+local flingBAV = nil
+local flingConn = nil
 
 local function startFling()
     if hiddenfling then return end
     hiddenfling = true
-    flingThread = task.spawn(flingLoop)
+    
+    local c = player.Character
+    if not c then return end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- ✅ BodyVelocity — bay ổn định
+    flingBV = Instance.new("BodyVelocity")
+    flingBV.Name = "FlingBV"
+    flingBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    flingBV.Velocity = Vector3.new(0, 0, 0)
+    flingBV.Parent = hrp
+    
+    -- ✅ BodyAngularVelocity — xoay
+    flingBAV = Instance.new("BodyAngularVelocity")
+    flingBAV.Name = "FlingBAV"
+    flingBAV.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    flingBAV.AngularVelocity = Vector3.new(99999, 99999, 99999)
+    flingBAV.Parent = hrp
+    
+    flingConn = RunService.Heartbeat:Connect(function()
+        local c2 = player.Character
+        if not c2 then return end
+        local hrp2 = c2:FindFirstChild("HumanoidRootPart")
+        if not hrp2 then return end
+        
+        -- ✅ Tìm người gần và bay vào họ
+        local closest = nil
+        local closestDist = 30
+        for _, other in pairs(Players:GetPlayers()) do
+            if other ~= player and other.Character then
+                local o = other.Character:FindFirstChild("HumanoidRootPart")
+                if o then
+                    local d = (hrp2.Position - o.Position).Magnitude
+                    if d < closestDist then
+                        closest = o
+                        closestDist = d
+                    end
+                end
+            end
+        end
+        
+        if closest then
+            local dir = (closest.Position - hrp2.Position).Unit
+            flingBV.Velocity = dir * Settings.FlingPower
+        else
+            flingBV.Velocity = Vector3.new(0, 0, 0)
+        end
+    end)
 end
 
 local function stopFling()
     hiddenfling = false
-    flingThread = nil
+    
+    -- ✅ Tắt BodyVelocity
+    if flingBV then flingBV:Destroy() flingBV = nil end
+    if flingBAV then flingBAV:Destroy() flingBAV = nil end
+    if flingConn then flingConn:Disconnect() flingConn = nil end
+    
+    -- ✅ QUAN TRỌNG: Reset velocity về 0 (fix chết khi off)
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+    end
 end
 
 -- ===== GUI =====
