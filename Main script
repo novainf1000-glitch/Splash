@@ -173,11 +173,15 @@ local function startFling()
 end
 
 local function stopFling()
+    -- ✅ Không tắt ngay, chạy tiếp 8s cho AntiFling khởi động
+    task.wait(8)
+    
     hiddenfling = false
     flingThread = nil
-
+    
     task.wait(0.2)
-
+    
+    -- Reset velocity
     local c = player.Character
     if c then
         local hrp = c:FindFirstChild("HumanoidRootPart")
@@ -195,11 +199,16 @@ local function stopFling()
             end)
         end
     end
-
+    
     stopNoclip()
-
+    
+    -- ✅ Bật AntiFling (đã có 8s để load xong)
+    startAntiFling()
+    
+    -- Đợi thêm 3s cho nhân vật tiếp đất an toàn
     task.wait(3)
-
+    
+    -- Force HP cuối
     local c2 = player.Character
     if c2 then
         local h2 = c2:FindFirstChildOfClass("Humanoid")
@@ -209,7 +218,9 @@ local function stopFling()
             end)
         end
     end
-
+    
+    -- Tắt AntiFling + Safe land
+    stopAntiFling()
     stopSafeLand()
 end
 
