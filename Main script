@@ -107,74 +107,40 @@ local function stopNoclipPlayer()
     end
 end
 
--- ✅ FLING THỦ CÔNG (chỉ fling khi va chạm)
+-- ✅ FLING SYSTEM (Touch Fling gốc)
 local hiddenfling = false
-local flingTouchConn = nil
+local flingThread = nil
 
-local function onTouched(otherPart)
-    if not hiddenfling then return end
+local function fling()
+    local lp = player
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
     
-    local c = player.Character
-    if not c then return end
-    
-    -- Kiểm tra part này thuộc về ai
-    local otherChar = otherPart:FindFirstAncestorOfClass("Model")
-    if not otherChar then return end
-    
-    local otherHum = otherChar:FindFirstChildOfClass("Humanoid")
-    if not otherHum then return end
-    
-    -- Nếu là chính mình thì bỏ qua
-    if otherChar == c then return end
-    
-    -- Lấy HRP của người khác
-    local otherHRP = otherChar:FindFirstChild("HumanoidRootPart")
-    if not otherHRP then return end
-    
-    -- ✅ FLING NGƯỜI KHÁC
-    local power = Settings.FlingPower
-    pcall(function()
-        otherHRP.Velocity = Vector3.new(
-            math.random(-power, power),
-            power,
-            math.random(-power, power)
-        )
-        otherHRP.RotVelocity = Vector3.new(
-            math.random(-power, power),
-            math.random(-power, power),
-            math.random(-power, power)
-        )
-    end)
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+        
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
 end
 
 local function startFling()
     if hiddenfling then return end
     hiddenfling = true
-    
-    -- Gắn sự kiện Touched vào nhân vật mình
-    local c = player.Character
-    if not c then return end
-    
-    flingTouchConn = c.DescendantAdded:Connect(function(desc)
-        if desc:IsA("BasePart") then
-            desc.Touched:Connect(onTouched)
-        end
-    end)
-    
-    -- Gắn cho các part hiện có
-    for _, part in pairs(c:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Touched:Connect(onTouched)
-        end
-    end
+    flingThread = task.spawn(fling)
 end
 
 local function stopFling()
     hiddenfling = false
-    if flingTouchConn then
-        flingTouchConn:Disconnect()
-        flingTouchConn = nil
-    end
+    flingThread = nil
 end
 
 -- ===== GUI =====
