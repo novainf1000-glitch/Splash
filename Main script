@@ -120,26 +120,23 @@ local function flingLoop()
         local hrp = c and c:FindFirstChild("HumanoidRootPart")
         if hrp then
             local power = Settings.FlingPower
-            -- ✅ CHỈ bơm ngang, không bơm Y
-            hrp.Velocity = Vector3.new(hrp.Velocity.X * power, 0, hrp.Velocity.Z * power)
+            local vel = hrp.Velocity
+            
+            -- ✅ Nếu đang rơi nhanh → giảm Y velocity
+            local newY = vel.Y
+            if newY < -50 then
+                newY = -30  -- Giới hạn tốc độ rơi
+            end
+            
+            -- Bơm velocity
+            hrp.Velocity = Vector3.new(vel.X * power, newY, vel.Z * power)
             RunService.RenderStepped:Wait()
-            hrp.Velocity = Vector3.new(hrp.Velocity.X * 0.5, 0, hrp.Velocity.Z * 0.5)
+            hrp.Velocity = Vector3.new(vel.X, newY, vel.Z)
             RunService.Stepped:Wait()
-            hrp.Velocity = Vector3.new(hrp.Velocity.X + movel * power, 0, hrp.Velocity.Z + movel * power)
+            hrp.Velocity = Vector3.new(vel.X + movel, newY, vel.Z + movel)
             movel = -movel
         end
     end
-end
-
-local function startFling()
-    if hiddenfling then return end
-    hiddenfling = true
-    flingThread = task.spawn(flingLoop)
-end
-
-local function stopFling()
-    hiddenfling = false
-    flingThread = nil
 end
 
 -- ===== GUI =====
@@ -658,3 +655,18 @@ end)
 
 -- ✅ TỰ ĐỘNG BẬT NOCLIP PLAYER KHI MỞ SCRIPT
 startNoclipPlayer()
+
+-- ✅ SAFE LAND — Chống rơi chết
+local safeLandConn = RunService.Heartbeat:Connect(function()
+    local c = player.Character
+    if not c then return end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Nếu đang rơi nhanh → giảm velocity
+    if hrp.Velocity.Y < -50 then
+        pcall(function()
+            hrp.Velocity = Vector3.new(hrp.Velocity.X * 0.5, -30, hrp.Velocity.Z * 0.5)
+        end)
+    end
+end)
