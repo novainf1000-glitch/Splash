@@ -1,4 +1,4 @@
---[[ GUI ANIMATION - CLEAN ]]
+--[[ GUI ANIMATION - VERTICAL + AUTO FLING ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -33,72 +33,6 @@ local function getAnimator()
 end
 
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
--- ===== FLING SYSTEM (SAFE) =====
-local hiddenfling = false
-local flingThread = nil
-
-local function flingLoop()
-    local lp = player
-    local c, hrp, vel, movel = nil, nil, nil, 0.1
-    while hiddenfling do
-        RunService.Heartbeat:Wait()
-        c = lp.Character
-        hrp = c and c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            vel = hrp.Velocity
-            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-            RunService.RenderStepped:Wait()
-            hrp.Velocity = vel
-            RunService.Stepped:Wait()
-            hrp.Velocity = vel + Vector3.new(0, movel, 0)
-            movel = -movel
-        end
-    end
-end
-
-local function startFling()
-    if hiddenfling then return end
-    -- Reset trước khi bật để tránh velocity cũ
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-    end
-    hiddenfling = true
-    flingThread = task.spawn(flingLoop)
-end
-
-local function stopFling()
-    hiddenfling = false
-    flingThread = nil
-    
-    -- ✅ Đợi 0.1s để frame cuối chạy xong
-    task.wait(0.1)
-    
-    -- ✅ Reset velocity + RotVelocity
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        local hum = c:FindFirstChildOfClass("Humanoid")
-        if hrp then
-            pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-        if hum then
-            pcall(function()
-                hum.PlatformStand = false
-                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end)
-        end
-    end
-end
 
 local function LoadTrack(id)
     local a = getAnimator()
@@ -125,14 +59,76 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- GUI
+-- ===== FLING SYSTEM (SAFE) =====
+local hiddenfling = false
+local flingThread = nil
+
+local function flingLoop()
+    local lp = player
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
+end
+
+local function startFling()
+    if hiddenfling then return end
+    -- Reset trước khi bật
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+    end
+    hiddenfling = true
+    flingThread = task.spawn(flingLoop)
+end
+
+local function stopFling()
+    hiddenfling = false
+    flingThread = nil
+    task.wait(0.1)
+    -- Reset velocity
+    local c = player.Character
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local hum2 = c:FindFirstChildOfClass("Humanoid")
+        if hrp then
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
+        end
+        if hum2 then
+            pcall(function()
+                hum2.PlatformStand = false
+            end)
+        end
+    end
+end
+
+-- ===== GUI =====
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
--- Container
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
 container.Size = UDim2.new(0, 130, 0, 200)
@@ -162,7 +158,6 @@ containerPad.PaddingRight = UDim.new(0, 5)
 containerPad.PaddingBottom = UDim.new(0, 10)
 containerPad.Parent = container
 
--- Auto resize container
 local function updateContainerSize()
     local contentHeight = containerLayout.AbsoluteContentSize.Y
     if contentHeight > 0 then
@@ -206,11 +201,9 @@ UIS.InputEnded:Connect(function(i)
     end
 end)
 
--- Danh sách nút
 local allBtns = {}
 local markedBtns = {}
 
--- Hàm tạo nút
 local function createBtn(name, id)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
@@ -266,48 +259,7 @@ local function createBtn(name, id)
     end)
 
     b.MouseButton1Click:Connect(function()
-    if Settings.DeleteMode then
-        marked = not marked
-        xMark.Visible = marked
-        if marked then
-            local exists = false
-            for _, m in pairs(markedBtns) do
-                if m == f then exists = true break end
-            end
-            if not exists then table.insert(markedBtns, f) end
-        else
-            for i, m in pairs(markedBtns) do
-                if m == f then table.remove(markedBtns, i) break end
-            end
-        end
-        return
-    end
-
-    if ActiveButton == b and IsPlaying then
-        StopTrack()
-        stopFling()
-        ActiveButton = nil
-        b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        StopTrack()
-        local tr = LoadTrack(id)
-        if tr then
-            IsPlaying = true
-            ActiveButton = b
-            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            startFling()
-            tr.Stopped:Connect(function()
-                if ActiveButton == b then
-                    IsPlaying = false
-                    ActiveButton = nil
-                    stopFling()
-                    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-                end
-            end)
-        end
-    end
-end)
-
+        if Settings.DeleteMode then
             marked = not marked
             xMark.Visible = marked
             if marked then
@@ -326,6 +278,7 @@ end)
 
         if ActiveButton == b and IsPlaying then
             StopTrack()
+            stopFling()
             ActiveButton = nil
             b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         else
@@ -335,10 +288,12 @@ end)
                 IsPlaying = true
                 ActiveButton = b
                 b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                startFling()
                 tr.Stopped:Connect(function()
                     if ActiveButton == b then
                         IsPlaying = false
                         ActiveButton = nil
+                        stopFling()
                         b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
                     end
                 end)
@@ -350,7 +305,6 @@ end)
     return b
 end
 
--- 14 NÚT
 createBtn("Spin", 133180711707319)
 createBtn("Slap", 118273721275238)
 createBtn("Drop kick", 122990265693059)
@@ -365,7 +319,7 @@ createBtn("Cú móc", 96853318026158)
 createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Good Dropkick", 71324709061585)
--- Nút xóa
+
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
@@ -435,7 +389,6 @@ panelTitle.BorderSizePixel = 0
 panelTitle.Parent = panel
 Instance.new("UICorner", panelTitle).CornerRadius = UDim.new(0, 10)
 
--- Kéo panel
 local pDrag, pds, pdp = false, nil, nil
 panelTitle.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -456,7 +409,6 @@ UIS.InputChanged:Connect(function(i)
     end
 end)
 
--- Scroll
 local pScroll = Instance.new("ScrollingFrame")
 pScroll.Size = UDim2.new(1, -10, 1, -40)
 pScroll.Position = UDim2.new(0, 5, 0, 35)
@@ -476,7 +428,6 @@ pLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     pScroll.CanvasSize = UDim2.new(0, 0, 0, pLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Toggle
 local function makeToggle(name, cb)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -524,7 +475,6 @@ makeToggle("Delete Mode", function(a)
     delFrame.Visible = a
 end)
 
--- Script ngoài
 local function makeScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -552,7 +502,6 @@ makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-304
 makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
 makeScriptBtn("Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
--- Slider
 local function makeSlider(name, min, max, def, cb)
     local c2 = Instance.new("Frame")
     c2.Size = UDim2.new(1, -10, 0, 42)
@@ -649,7 +598,6 @@ makeSlider("Size", 1, 13, 7, function(v)
     updateContainerSize()
 end)
 
--- Icon Settings
 local sFrame = Instance.new("Frame")
 sFrame.Size = UDim2.new(0, 32, 0, 32)
 sFrame.Position = UDim2.new(1, -45, 0, 15)
