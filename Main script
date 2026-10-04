@@ -94,7 +94,7 @@ local function flingLoop()
 end
 
 local function startFling()
--- ✅ NOCLIP PLAYER (chỉ xuyên người chơi, không xuyên tường)
+-- ✅ NOCLIP PLAYER (chỉ xuyên người chơi)
 local noclipPlayerConn = nil
 
 local function startNoclipPlayer()
@@ -119,7 +119,6 @@ local function stopNoclipPlayer()
         noclipPlayerConn:Disconnect()
         noclipPlayerConn = nil
     end
-    -- Khôi phục CanCollide cho người khác
     for _, other in pairs(Players:GetPlayers()) do
         if other ~= player and other.Character then
             for _, part in pairs(other.Character:GetDescendants()) do
@@ -133,6 +132,8 @@ local function stopNoclipPlayer()
     end
 end
 
+-- ✅ FLING
+local function startFling()
     if hiddenfling then return end
     hiddenfling = true
     flingThread = task.spawn(flingLoop)
