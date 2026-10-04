@@ -1,4 +1,4 @@
---[[ GUI ANIMATION - SIMPLE FLING ]]
+--[[ GUI ANIMATION FINAL ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -69,32 +69,7 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- ===== FLING SYSTEM (SIMPLE) =====
-local hiddenfling = false
-local flingThread = nil
-
-local function flingLoop()
-    local lp = player
-    local movel = 0.1
-    while hiddenfling do
-        RunService.Heartbeat:Wait()
-        local c = lp.Character
-        local hrp = c and c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local power = Settings.FlingPower
-            local vel = hrp.Velocity
-            hrp.Velocity = vel * power + Vector3.new(0, power, 0)
-            RunService.RenderStepped:Wait()
-            hrp.Velocity = vel
-            RunService.Stepped:Wait()
-            hrp.Velocity = vel + Vector3.new(0, movel, 0)
-            movel = -movel
-        end
-    end
-end
-
-local function startFling()
--- ✅ NOCLIP PLAYER (chỉ xuyên người chơi)
+-- ✅ NOCLIP PLAYER (chỉ xuyên người chơi, không xuyên tường)
 local noclipPlayerConn = nil
 
 local function startNoclipPlayer()
@@ -133,6 +108,29 @@ local function stopNoclipPlayer()
 end
 
 -- ✅ FLING
+local hiddenfling = false
+local flingThread = nil
+
+local function flingLoop()
+    local lp = player
+    local movel = 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        local c = lp.Character
+        local hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local power = Settings.FlingPower
+            local vel = hrp.Velocity
+            hrp.Velocity = vel * power + Vector3.new(0, power, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
+end
+
 local function startFling()
     if hiddenfling then return end
     hiddenfling = true
@@ -144,7 +142,7 @@ local function stopFling()
     flingThread = nil
 end
 
--- GUI
+-- ===== GUI =====
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
@@ -154,7 +152,7 @@ sg.Parent = CoreGui
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
 container.Size = UDim2.new(0, 130, 0, 200)
-container.Position = UDim2.new(0, 19, 0.2, 0)
+container.Position = UDim2.new(0, 10, 0.05, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
 container.BorderSizePixel = 0
@@ -191,7 +189,6 @@ containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function
     updateContainerSize()
 end)
 
--- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
@@ -493,21 +490,12 @@ makeToggle("Delete Mode", function(a)
     delFrame.Visible = a
 end)
 
--- ✅ FLING TOGGLE
 makeToggle("Fling", function(a)
-    if a then
-        startFling()
-    else
-        stopFling()
-    end
+    if a then startFling() else stopFling() end
 end)
 
 makeToggle("Noclip Player", function(a)
-    if a then
-        startNoclipPlayer()
-    else
-        stopNoclipPlayer()
-    end
+    if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
 
 local function makeScriptBtn(name, url)
@@ -605,7 +593,6 @@ local function makeSlider(name, min, max, def, cb)
     end)
 end
 
--- ✅ SLIDER LỰC FLING (1-1000)
 makeSlider("Fling Power", 1, 1000, 100, function(v)
     Settings.FlingPower = math.floor(v)
 end)
@@ -617,7 +604,7 @@ makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
     end
 end)
 
-makeSlider("Tốc chạy", 1, 250, 16, function(v)
+makeSlider("Tốc chạy", 0, 1000, 16, function(v)
     Settings.WalkSpeed = math.floor(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
@@ -669,5 +656,5 @@ sBtn.MouseLeave:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
 end)
 
--- ✅ Tự động bật Noclip Player khi mở script
+-- ✅ TỰ ĐỘNG BẬT NOCLIP PLAYER KHI MỞ SCRIPT
 startNoclipPlayer()
