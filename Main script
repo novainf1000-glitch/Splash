@@ -1,4 +1,4 @@
---[[ GUI ANIMATION ]]
+--[[ GUI ANIMATION - SIMPLE FLING ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -14,6 +14,7 @@ local Settings = {
     HideMode = false,
     DeleteMode = false,
     BtnSize = 7,
+    FlingPower = 100,
 }
 
 local char = player.Character or player.CharacterAdded:Wait()
@@ -68,70 +69,9 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- FLING SYSTEM
+-- ===== FLING SYSTEM (SIMPLE) =====
 local hiddenfling = false
 local flingThread = nil
-local noclipConn = nil
-local safeLandConn = nil
-
-local function startNoclip()
-    if noclipConn then return end
-    noclipConn = RunService.Heartbeat:Connect(function()
-        local c = player.Character
-        if not c then return end
-        for _, part in pairs(c:GetDescendants()) do
-            if part:IsA("BasePart") then
-                if part.CanCollide then part.CanCollide = false end
-                if part.CanTouch then part.CanTouch = false end
-            end
-        end
-    end)
-end
-
-local function stopNoclip()
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
-    end
-    local c = player.Character
-    if c then
-        for _, part in pairs(c:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-                part.CanTouch = true
-            end
-        end
-    end
-end
-
-local function startSafeLand()
-    if safeLandConn then return end
-    safeLandConn = RunService.Heartbeat:Connect(function()
-        local c = player.Character
-        if not c then return end
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        local h = c:FindFirstChildOfClass("Humanoid")
-        if hrp and h then
-            if hrp.Velocity.Y < -50 then
-                pcall(function()
-                    hrp.Velocity = Vector3.new(hrp.Velocity.X * 0.5, -30, hrp.Velocity.Z * 0.5)
-                end)
-            end
-            if h.Health < h.MaxHealth then
-                pcall(function()
-                    h.Health = h.MaxHealth
-                end)
-            end
-        end
-    end)
-end
-
-local function stopSafeLand()
-    if safeLandConn then
-        safeLandConn:Disconnect()
-        safeLandConn = nil
-    end
-end
 
 local function flingLoop()
     local lp = player
@@ -141,14 +81,13 @@ local function flingLoop()
         local c = lp.Character
         local hrp = c and c:FindFirstChild("HumanoidRootPart")
         if hrp then
+            local power = Settings.FlingPower
             local vel = hrp.Velocity
-            -- ✅ Bơm NGANG — không bơm Y
-            hrp.Velocity = Vector3.new(vel.X * 500, 0, vel.Z * 500)
+            hrp.Velocity = vel * power + Vector3.new(0, power, 0)
             RunService.RenderStepped:Wait()
-            hrp.Velocity = Vector3.new(vel.X, vel.Y, vel.Z)
+            hrp.Velocity = vel
             RunService.Stepped:Wait()
-            -- Nhỏ giật nhẹ ngang để fling người khác
-            hrp.Velocity = Vector3.new(vel.X + movel * 50, vel.Y, vel.Z + movel * 50)
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
             movel = -movel
         end
     end
@@ -156,72 +95,13 @@ end
 
 local function startFling()
     if hiddenfling then return end
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            pcall(function()
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-    end
-    startNoclip()
-    startSafeLand()
     hiddenfling = true
     flingThread = task.spawn(flingLoop)
 end
 
 local function stopFling()
-    -- ✅ Không tắt ngay, chạy tiếp 8s cho AntiFling khởi động
-    task.wait(8)
-    
     hiddenfling = false
     flingThread = nil
-    
-    task.wait(0.2)
-    
-    -- Reset velocity
-    local c = player.Character
-    if c then
-        local hrp = c:FindFirstChild("HumanoidRootPart")
-        local h = c:FindFirstChildOfClass("Humanoid")
-        if hrp then
-            pcall(function()
-                hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-        if h then
-            pcall(function()
-                h.PlatformStand = false
-                h:ChangeState(Enum.HumanoidStateType.GettingUp)
-            end)
-        end
-    end
-    
-    stopNoclip()
-    
-    -- ✅ Bật AntiFling (đã có 8s để load xong)
-    startAntiFling()
-    
-    -- Đợi thêm 3s cho nhân vật tiếp đất an toàn
-    task.wait(3)
-    
-    -- Force HP cuối
-    local c2 = player.Character
-    if c2 then
-        local h2 = c2:FindFirstChildOfClass("Humanoid")
-        if h2 then
-            pcall(function()
-                h2.Health = h2.MaxHealth
-            end)
-        end
-    end
-    
-    -- Tắt AntiFling + Safe land
-    stopAntiFling()
-    stopSafeLand()
 end
 
 -- GUI
@@ -271,6 +151,7 @@ containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function
     updateContainerSize()
 end)
 
+-- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
@@ -379,7 +260,6 @@ local function createBtn(name, id)
 
         if ActiveButton == b and IsPlaying then
             StopTrack()
-            stopFling()
             ActiveButton = nil
             b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         else
@@ -389,12 +269,10 @@ local function createBtn(name, id)
                 IsPlaying = true
                 ActiveButton = b
                 b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                startFling()
                 tr.Stopped:Connect(function()
                     if ActiveButton == b then
                         IsPlaying = false
                         ActiveButton = nil
-                        stopFling()
                         b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
                     end
                 end)
@@ -448,7 +326,7 @@ delBtn.MouseButton1Click:Connect(function()
     local count = #markedBtns
     for _, f in pairs(markedBtns) do
         for i, ref in pairs(allBtns) do
-            if ref.frame == f then table.remove(allBtns, i) break end
+            if ref and ref.frame == f then table.remove(allBtns, i) break end
         end
         f:Destroy()
     end
@@ -463,7 +341,7 @@ delBtn.MouseButton1Click:Connect(function()
 end)
 
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 240, 0, 420)
+panel.Size = UDim2.new(0, 240, 0, 480)
 panel.Position = UDim2.new(1, -255, 0, 60)
 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 panel.BorderSizePixel = 0
@@ -557,7 +435,7 @@ end)
 makeToggle("Hide Button", function(a)
     Settings.HideMode = a
     for _, ref in pairs(allBtns) do
-        if ref.frame and ref.frame.Parent then
+        if ref and ref.frame and ref.frame.Parent then
             ref.frame.Visible = not a
         end
     end
@@ -566,13 +444,22 @@ end)
 makeToggle("Delete Mode", function(a)
     Settings.DeleteMode = a
     for _, ref in pairs(allBtns) do
-        if ref.frame and ref.frame.Parent then
+        if ref and ref.frame and ref.frame.Parent then
             local stroke = ref.frame:FindFirstChild("RedStroke")
             if stroke then stroke.Enabled = a end
             if a then ref.frame.Visible = true end
         end
     end
     delFrame.Visible = a
+end)
+
+-- ✅ FLING TOGGLE
+makeToggle("Fling", function(a)
+    if a then
+        startFling()
+    else
+        stopFling()
+    end
 end)
 
 local function makeScriptBtn(name, url)
@@ -600,7 +487,6 @@ end
 
 makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
 makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
-makeScriptBtn("Fling", "https://rawscripts.net/raw/Universal-Script-kick-fling-177615")
 
 local function makeSlider(name, min, max, def, cb)
     local c2 = Instance.new("Frame")
@@ -671,6 +557,11 @@ local function makeSlider(name, min, max, def, cb)
     end)
 end
 
+-- ✅ SLIDER LỰC FLING (1-1000)
+makeSlider("Fling Power", 1, 1000, 100, function(v)
+    Settings.FlingPower = math.floor(v)
+end)
+
 makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then
@@ -687,7 +578,7 @@ makeSlider("Size", 1, 13, 7, function(v)
     local size = math.floor(v)
     Settings.BtnSize = size
     for _, ref in pairs(allBtns) do
-        if ref.frame and ref.frame.Parent then
+        if ref and ref.frame and ref.frame.Parent then
             ref.frame.Size = UDim2.new(1, 0, 0, size * 2.8)
             if ref.btn then
                 ref.btn.TextSize = math.max(8, size)
