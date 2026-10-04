@@ -107,10 +107,11 @@ local function stopNoclipPlayer()
     end
 end
 
--- ✅ FLING SYSTEM V7 (BodyGyro + BodyVelocity)
+-- ✅ FLING SYSTEM V6 (AlignPosition + AlignOrientation)
 local hiddenfling = false
-local flingBV = nil
-local flingBG = nil
+local alignPos = nil
+local alignOri = nil
+local attachMy = nil
 local flingConn = nil
 
 local function startFling()
@@ -122,26 +123,35 @@ local function startFling()
     local hrp = c:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    -- BodyVelocity — bay tới
-    flingBV = Instance.new("BodyVelocity")
-    flingBV.Name = "FlingBV"
-    flingBV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    flingBV.Velocity = Vector3.new(0, 0, 0)
-    flingBV.Parent = hrp
+    -- Attachment gắn vào HRP
+    attachMy = Instance.new("Attachment")
+    attachMy.Name = "FlingAttach"
+    attachMy.Parent = hrp
     
-    -- BodyGyro — giữ hướng ổn định
-    flingBG = Instance.new("BodyGyro")
-    flingBG.Name = "FlingBG"
-    flingBG.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    flingBG.P = 10000
-    flingBG.D = 500
-    flingBG.Parent = hrp
+    -- AlignPosition — di chuyển tới vị trí
+    alignPos = Instance.new("AlignPosition")
+    alignPos.Name = "FlingAlignPos"
+    alignPos.Attachment0 = attachMy
+    alignPos.Mode = Enum.PositionAlignmentMode.OneAttachment
+    alignPos.Position = hrp.Position
+    alignPos.MaxForce = math.huge
+    alignPos.Responsiveness = 200
+    alignPos.Parent = hrp
+    
+    -- AlignOrientation — xoay hướng
+    alignOri = Instance.new("AlignOrientation")
+    alignOri.Name = "FlingAlignOri"
+    alignOri.Attachment0 = attachMy
+    alignOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    alignOri.MaxTorque = math.huge
+    alignOri.Responsiveness = 200
+    alignOri.Parent = hrp
     
     flingConn = RunService.Heartbeat:Connect(function()
         local c2 = player.Character
         if not c2 then return end
         local hrp2 = c2:FindFirstChild("HumanoidRootPart")
-        if not hrp2 then return end
+        if not hrp2 or not alignPos then return end
         
         -- Tìm người gần
         local closest = nil
@@ -160,14 +170,14 @@ local function startFling()
         end
         
         if closest then
-            local dir = (closest.Position - hrp2.Position).Unit
-            flingBV.Velocity = dir * Settings.FlingPower
-            -- BodyGyro giữ hướng bay
-            flingBG.CFrame = CFrame.new(Vector3.new(0, 0, 0), closest.Position)
+            -- Di chuyển tới người
+            alignPos.Position = closest.Position
+            -- Giữ hướng bay
+            alignOri.CFrame = CFrame.new(Vector3.new(0, 0, 0), closest.Position)
         else
-            flingBV.Velocity = Vector3.new(0, 0, 0)
-            -- Tắt xoay khi không có ai
-            flingBG.CFrame = CFrame.new()
+            -- Đứng yên
+            alignPos.Position = hrp2.Position
+            alignOri.CFrame = CFrame.new()
         end
     end)
 end
@@ -175,8 +185,9 @@ end
 local function stopFling()
     hiddenfling = false
     
-    if flingBV then flingBV:Destroy() flingBV = nil end
-    if flingBG then flingBG:Destroy() flingBG = nil end
+    if alignPos then alignPos:Destroy() alignPos = nil end
+    if alignOri then alignOri:Destroy() alignOri = nil end
+    if attachMy then attachMy:Destroy() attachMy = nil end
     if flingConn then flingConn:Disconnect() flingConn = nil end
     
     -- Reset velocity khi tắt
@@ -187,17 +198,6 @@ local function stopFling()
             pcall(function()
                 hrp.Velocity = Vector3.new(0, 0, 0)
                 hrp.RotVelocity = Vector3.new(0, 0, 0)
-            end)
-        end
-    end
-    
-    task.wait(0.5)
-    local c2 = player.Character
-    if c2 then
-        local hrp2 = c2:FindFirstChild("HumanoidRootPart")
-        if hrp2 then
-            pcall(function()
-                hrp2.Velocity = Vector3.new(0, 0, 0)
             end)
         end
     end
