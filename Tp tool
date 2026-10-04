@@ -1,0 +1,44 @@
+-- Create the tp tool when the script runs
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Create a tool called "tp tool"
+local tpTool = Instance.new("Tool")
+tpTool.Name = "tp tool"
+tpTool.RequiresHandle = false
+tpTool.Parent = player.Backpack
+
+-- Create a button in the player's GUI for teleportation
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local tpButton = Instance.new("TextButton")
+tpButton.Size = UDim2.new(0, 200, 0, 50)
+tpButton.Position = UDim2.new(0, 10, 0, 10)
+tpButton.Text = "TP Random"
+tpButton.Visible = false -- Start off invisible
+tpButton.Parent = screenGui
+
+-- Function to teleport to a random player when the button is clicked
+local function teleportToRandomPlayer()
+    local players = game.Players:GetPlayers()
+    local randomPlayer = players[math.random(1, #players)]
+
+    -- Make sure we don't teleport the player to themselves
+    if randomPlayer ~= player then
+        player.Character:MoveTo(randomPlayer.Character.HumanoidRootPart.Position)
+    end
+end
+
+-- Show the button when the tool is equipped
+tpTool.Equipped:Connect(function()
+    tpButton.Visible = true
+end)
+
+-- Hide the button when the tool is unequipped
+tpTool.Unequipped:Connect(function()
+    tpButton.Visible = false
+end)
+
+-- Connect the button click to the teleport function
+tpButton.MouseButton1Click:Connect(teleportToRandomPlayer)
