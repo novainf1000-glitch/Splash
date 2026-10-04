@@ -142,11 +142,13 @@ local function flingLoop()
         local hrp = c and c:FindFirstChild("HumanoidRootPart")
         if hrp then
             local vel = hrp.Velocity
-            hrp.Velocity = vel * 500 + Vector3.new(0, 500, 0)
+            -- ✅ Bơm NGANG — không bơm Y
+            hrp.Velocity = Vector3.new(vel.X * 500, 0, vel.Z * 500)
             RunService.RenderStepped:Wait()
-            hrp.Velocity = vel
+            hrp.Velocity = Vector3.new(vel.X, vel.Y, vel.Z)
             RunService.Stepped:Wait()
-            hrp.Velocity = vel + Vector3.new(0, movel * 10, 0)
+            -- Nhỏ giật nhẹ ngang để fling người khác
+            hrp.Velocity = Vector3.new(vel.X + movel * 50, vel.Y, vel.Z + movel * 50)
             movel = -movel
         end
     end
