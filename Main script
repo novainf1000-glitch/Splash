@@ -107,7 +107,7 @@ local function stopNoclipPlayer()
     end
 end
 
--- ✅ FLING
+-- ✅ FLING SYSTEM + SAFE FALL
 local hiddenfling = false
 local flingThread = nil
 
@@ -122,13 +122,12 @@ local function flingLoop()
             local power = Settings.FlingPower
             local vel = hrp.Velocity
             
-            -- ✅ Nếu đang rơi nhanh → giảm Y velocity
+            -- ✅ Giới hạn Y âm (chống rơi nhanh)
             local newY = vel.Y
             if newY < -50 then
-                newY = -30  -- Giới hạn tốc độ rơi
+                newY = -30
             end
             
-            -- Bơm velocity
             hrp.Velocity = Vector3.new(vel.X * power, newY, vel.Z * power)
             RunService.RenderStepped:Wait()
             hrp.Velocity = Vector3.new(vel.X, newY, vel.Z)
@@ -137,6 +136,17 @@ local function flingLoop()
             movel = -movel
         end
     end
+end
+
+local function startFling()
+    if hiddenfling then return end
+    hiddenfling = true
+    flingThread = task.spawn(flingLoop)
+end
+
+local function stopFling()
+    hiddenfling = false
+    flingThread = nil
 end
 
 -- ===== GUI =====
