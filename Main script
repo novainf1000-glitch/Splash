@@ -260,10 +260,104 @@ local function flingLoop()
         end
     end
 end
+-- ===== FLING SYSTEM + NOCLIP + HP LOCK (FINAL V2) =====
+local hiddenfling = false
+local flingThread = nil
+local noclipConn = nil
+local hpLockConn = nil
+
+-- ✅ NOCLIP mạnh hơn — tắt hết CanCollide + CanTouch
+local function startNoclip()
+    if noclipConn then return end
+    noclipConn = RunService.Heartbeat:Connect(function()
+        local c = player.Character
+        if c then
+            for _, part in pairs(c:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    if part.CanCollide then part.CanCollide = false end
+                    if part.CanTouch then part.CanTouch = false end
+                    if part.CanQuery then part.CanQuery = false end
+                end
+            end
+            -- ✅ Tắt cả character của player khác để không đứng lên
+            for _, other in pairs(Players:GetPlayers()) do
+                if other ~= player and other.Character then
+                    for _, part in pairs(other.Character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    local c = player.Character
+    if c then
+        for _, part in pairs(c:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.CanTouch = true
+                part.CanQuery = true
+            end
+        end
+    end
+end
+
+-- ✅ HP LOCK: giữ HP luôn = 100 (không dùng math.huge)
+local function startHPLock()
+    if hpLockConn then return end
+    hpLockConn = RunService.Heartbeat:Connect(function()
+        local c = player.Character
+        if c then
+            local hum2 = c:FindFirstChildOfClass("Humanoid")
+            if hum2 then
+                if hum2.MaxHealth ~= 100 then
+                    pcall(function() hum2.MaxHealth = 100 end)
+                end
+                if hum2.Health ~= 100 then
+                    pcall(function() hum2.Health = 100 end)
+                end
+            end
+        end
+    end)
+end
+
+local function stopHPLock()
+    if hpLockConn then
+        hpLockConn:Disconnect()
+        hpLockConn = nil
+    end
+end
+
+-- FLING LOOP
+local function flingLoop()
+    local lp = player
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, movel, 0)
+            movel = -movel
+        end
+    end
+end
 
 local function startFling()
     if hiddenfling then return end
-    -- Reset velocity cũ
     local c = player.Character
     if c then
         local hrp = c:FindFirstChild("HumanoidRootPart")
@@ -275,8 +369,7 @@ local function startFling()
         end
     end
     startNoclip()
-    enableGodmode()
-    startHPGuard()  -- ✅ Bật HP guard
+    startHPLock()
     hiddenfling = true
     flingThread = task.spawn(flingLoop)
 end
@@ -287,7 +380,7 @@ local function stopFling()
     
     task.wait(0.2)
     
-    -- Reset velocity + state
+    -- Reset velocity
     local c = player.Character
     if c then
         local hrp = c:FindFirstChild("HumanoidRootPart")
@@ -306,10 +399,11 @@ local function stopFling()
         end
     end
     
+    -- Tắt Noclip
     stopNoclip()
     
-    -- ✅ Đợi lâu hơn + giữ HP guard trong lúc rơi
-    task.wait(1.5)
+    -- ✅ Đợi nhân vật tiếp đất (giữ HP lock trong lúc này)
+    task.wait(2)
     
     -- Force HP = 100
     local c2 = player.Character
@@ -317,14 +411,15 @@ local function stopFling()
         local hum3 = c2:FindFirstChildOfClass("Humanoid")
         if hum3 then
             pcall(function()
+                hum3.MaxHealth = 100
                 hum3.Health = 100
             end)
         end
     end
     
+    -- ✅ Tắt HP lock (KHÔNG tắt MaxHealth)
     task.wait(0.3)
-    stopHPGuard()      -- ✅ Tắt HP guard
-    disableGodmode()   -- ✅ Tắt godmode
+    stopHPLock()
 end
 
 -- ===== GUI =====
