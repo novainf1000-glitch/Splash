@@ -149,6 +149,112 @@ local function flingLoop()
             RunService.RenderStepped:Wait()
             hrp.Velocity = vel
             RunService.Stepped:Wait()
+
+-- ===== FLING SYSTEM + NOCLIP + HP GUARD (FINAL) =====
+local hiddenfling = false
+local flingThread = nil
+local noclipConn = nil
+local hpGuardConn = nil
+local godmodeActive = false
+
+-- NOCLIP
+local function startNoclip()
+    if noclipConn then return end
+    noclipConn = RunService.Stepped:Connect(function()
+        local c = player.Character
+        if c then
+            for _, part in pairs(c:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function stopNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    local c = player.Character
+    if c then
+        for _, part in pairs(c:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- ✅ HP GUARD: tự hồi máu mọi lúc
+local function startHPGuard()
+    if hpGuardConn then return end
+    hpGuardConn = RunService.Heartbeat:Connect(function()
+        local c = player.Character
+        if c then
+            local hum2 = c:FindFirstChildOfClass("Humanoid")
+            if hum2 and hum2.Health < hum2.MaxHealth then
+                pcall(function()
+                    hum2.Health = hum2.MaxHealth
+                end)
+            end
+        end
+    end)
+end
+
+local function stopHPGuard()
+    if hpGuardConn then
+        hpGuardConn:Disconnect()
+        hpGuardConn = nil
+    end
+end
+
+-- GODMODE
+local function enableGodmode()
+    if godmodeActive then return end
+    godmodeActive = true
+    local c = player.Character
+    if c then
+        local hum2 = c:FindFirstChildOfClass("Humanoid")
+        if hum2 then
+            pcall(function()
+                hum2.MaxHealth = math.huge
+                hum2.Health = math.huge
+            end)
+        end
+    end
+end
+
+local function disableGodmode()
+    if not godmodeActive then return end
+    godmodeActive = false
+    local c = player.Character
+    if c then
+        local hum2 = c:FindFirstChildOfClass("Humanoid")
+        if hum2 then
+            pcall(function()
+                hum2.MaxHealth = 100
+                hum2.Health = 100
+            end)
+        end
+    end
+end
+
+-- FLING LOOP
+local function flingLoop()
+    local lp = player
+    local c, hrp, vel, movel = nil, nil, nil, 0.1
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        c = lp.Character
+        hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
             hrp.Velocity = vel + Vector3.new(0, movel, 0)
             movel = -movel
         end
@@ -168,9 +274,9 @@ local function startFling()
             end)
         end
     end
-    -- ✅ Bật Noclip + Godmode
     startNoclip()
     enableGodmode()
+    startHPGuard()  -- ✅ Bật HP guard
     hiddenfling = true
     flingThread = task.spawn(flingLoop)
 end
@@ -179,10 +285,9 @@ local function stopFling()
     hiddenfling = false
     flingThread = nil
     
-    -- Đợi 1 frame cho fling loop dừng hẳn
     task.wait(0.2)
     
-    -- ✅ Reset velocity
+    -- Reset velocity + state
     local c = player.Character
     if c then
         local hrp = c:FindFirstChild("HumanoidRootPart")
@@ -201,13 +306,12 @@ local function stopFling()
         end
     end
     
-    -- ✅ Tắt Noclip trước
     stopNoclip()
     
-    -- Đợi nhân vật tiếp đất + dừng hẳn
-    task.wait(0.5)
+    -- ✅ Đợi lâu hơn + giữ HP guard trong lúc rơi
+    task.wait(1.5)
     
-    -- Reset HP về 100 trước
+    -- Force HP = 100
     local c2 = player.Character
     if c2 then
         local hum3 = c2:FindFirstChildOfClass("Humanoid")
@@ -218,9 +322,9 @@ local function stopFling()
         end
     end
     
-    -- Đợi thêm 0.2s rồi mới tắt Godmode
-    task.wait(0.2)
-    disableGodmode()
+    task.wait(0.3)
+    stopHPGuard()      -- ✅ Tắt HP guard
+    disableGodmode()   -- ✅ Tắt godmode
 end
 
 -- ===== GUI =====
