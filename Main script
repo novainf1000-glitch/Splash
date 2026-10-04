@@ -1,4 +1,4 @@
---[[ GUI ANIMATION FINAL ]]
+--[[ GUI ANIMATION + FLING TOUCH ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -14,7 +14,6 @@ local Settings = {
     HideMode = false,
     DeleteMode = false,
     BtnSize = 7,
-    FlingPower = 100,
 }
 
 local char = player.Character or player.CharacterAdded:Wait()
@@ -69,7 +68,7 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- ✅ NOCLIP PLAYER (chỉ xuyên người chơi, không xuyên tường)
+-- NOCLIP PLAYER
 local noclipPlayerConn = nil
 
 local function startNoclipPlayer()
@@ -94,56 +93,9 @@ local function stopNoclipPlayer()
         noclipPlayerConn:Disconnect()
         noclipPlayerConn = nil
     end
-    for _, other in pairs(Players:GetPlayers()) do
-        if other ~= player and other.Character then
-            for _, part in pairs(other.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    pcall(function()
-                        part.CanCollide = true
-                    end)
-                end
-            end
-        end
-    end
 end
 
--- ✅ FLING SYSTEM (Touch Fling gốc)
-local hiddenfling = false
-local flingThread = nil
-
-local function fling()
-    local lp = player
-    local c, hrp, vel, movel = nil, nil, nil, 0.1
-    
-    while hiddenfling do
-        RunService.Heartbeat:Wait()
-        c = lp.Character
-        hrp = c and c:FindFirstChild("HumanoidRootPart")
-        
-        if hrp then
-            vel = hrp.Velocity
-            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-            RunService.RenderStepped:Wait()
-            hrp.Velocity = vel
-            RunService.Stepped:Wait()
-            hrp.Velocity = vel + Vector3.new(0, movel, 0)
-            movel = -movel
-        end
-    end
-end
-
-local function startFling()
-    if hiddenfling then return end
-    hiddenfling = true
-    flingThread = task.spawn(fling)
-end
-
-local function stopFling()
-    hiddenfling = false
-    flingThread = nil
-end
-
--- ===== GUI =====
+-- GUI
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
@@ -190,6 +142,7 @@ containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function
     updateContainerSize()
 end)
 
+-- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
@@ -379,7 +332,7 @@ delBtn.MouseButton1Click:Connect(function()
 end)
 
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 240, 0, 480)
+panel.Size = UDim2.new(0, 240, 0, 380)
 panel.Position = UDim2.new(1, -255, 0, 60)
 panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 panel.BorderSizePixel = 0
@@ -466,6 +419,24 @@ local function makeToggle(name, cb)
     return b
 end
 
+local function makeButton(name, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 32)
+    b.BackgroundColor3 = Color3.fromRGB(60, 80, 180)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = pScroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        cb(b)
+    end)
+    return b
+end
+
 makeToggle("Lock Button", function(a)
     Settings.Locked = a
 end)
@@ -491,14 +462,21 @@ makeToggle("Delete Mode", function(a)
     delFrame.Visible = a
 end)
 
-makeToggle("Fling", function(a)
-    if a then startFling() else stopFling() end
-end)
-
 makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
 
+-- ✅ NÚT FLING TOUCH
+makeButton("Fling Touch", function(b)
+    b.Text = "Fling Touch ✓"
+    task.wait(1)
+    b.Text = "Fling Touch"
+    
+    -- Gọi GUI Touch Fling
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/main/Touch%20Fling"))()
+end)
+
+-- Script ngoài
 local function makeScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
@@ -594,10 +572,6 @@ local function makeSlider(name, min, max, def, cb)
     end)
 end
 
-makeSlider("Fling Power", 1, 1000, 100, function(v)
-    Settings.FlingPower = math.floor(v)
-end)
-
 makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
     Settings.Speed = v
     if CurrentTrack and CurrentTrack.IsPlaying then
@@ -655,22 +629,4 @@ sBtn.MouseEnter:Connect(function()
 end)
 sBtn.MouseLeave:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
-end)
-
--- ✅ TỰ ĐỘNG BẬT NOCLIP PLAYER KHI MỞ SCRIPT
-startNoclipPlayer()
-
--- ✅ SAFE LAND — Chống rơi chết
-local safeLandConn = RunService.Heartbeat:Connect(function()
-    local c = player.Character
-    if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Nếu đang rơi nhanh → giảm velocity
-    if hrp.Velocity.Y < -50 then
-        pcall(function()
-            hrp.Velocity = Vector3.new(hrp.Velocity.X * 0.5, -30, hrp.Velocity.Z * 0.5)
-        end)
-    end
 end)
