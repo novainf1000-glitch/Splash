@@ -473,7 +473,7 @@ makeButton("Fling Touch", function(b)
     b.Text = "Fling Touch"
     
     -- Gọi GUI Touch Fling
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/main/Touch%20Fling"))()
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Touch%20fling"))() 
 end)
 
 -- Script ngoài
