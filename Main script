@@ -122,7 +122,14 @@ local function disableGodmode()
         if hum2 then
             pcall(function()
                 hum2.MaxHealth = 100
-                hum2.Health = 100
+                hum2.Health = 100  -- ✅ Set HP = 100 trước
+            end)
+            -- Đợi 1 frame rồi force set lại để chắc chắn
+            task.wait(0.05)
+            pcall(function()
+                if hum2.Parent then
+                    hum2.Health = 100
+                end
             end)
         end
     end
@@ -194,11 +201,25 @@ local function stopFling()
         end
     end
     
-    -- ✅ Tắt Noclip + Godmode
+    -- ✅ Tắt Noclip trước
     stopNoclip()
     
-    -- Đợi thêm trước khi tắt god (để nhân vật tiếp đất an toàn)
-    task.wait(0.3)
+    -- Đợi nhân vật tiếp đất + dừng hẳn
+    task.wait(0.5)
+    
+    -- Reset HP về 100 trước
+    local c2 = player.Character
+    if c2 then
+        local hum3 = c2:FindFirstChildOfClass("Humanoid")
+        if hum3 then
+            pcall(function()
+                hum3.Health = 100
+            end)
+        end
+    end
+    
+    -- Đợi thêm 0.2s rồi mới tắt Godmode
+    task.wait(0.2)
     disableGodmode()
 end
 
