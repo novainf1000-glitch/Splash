@@ -266,7 +266,48 @@ local function createBtn(name, id)
     end)
 
     b.MouseButton1Click:Connect(function()
-        if Settings.DeleteMode then
+    if Settings.DeleteMode then
+        marked = not marked
+        xMark.Visible = marked
+        if marked then
+            local exists = false
+            for _, m in pairs(markedBtns) do
+                if m == f then exists = true break end
+            end
+            if not exists then table.insert(markedBtns, f) end
+        else
+            for i, m in pairs(markedBtns) do
+                if m == f then table.remove(markedBtns, i) break end
+            end
+        end
+        return
+    end
+
+    if ActiveButton == b and IsPlaying then
+        StopTrack()
+        stopFling()
+        ActiveButton = nil
+        b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        StopTrack()
+        local tr = LoadTrack(id)
+        if tr then
+            IsPlaying = true
+            ActiveButton = b
+            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            startFling()
+            tr.Stopped:Connect(function()
+                if ActiveButton == b then
+                    IsPlaying = false
+                    ActiveButton = nil
+                    stopFling()
+                    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                end
+            end)
+        end
+    end
+end)
+
             marked = not marked
             xMark.Visible = marked
             if marked then
