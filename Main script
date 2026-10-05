@@ -293,13 +293,6 @@ createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
 
-danceLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    local h = danceLayout.AbsoluteContentSize.Y
-    if h > 0 then
-        danceContainer.Size = UDim2.new(0, 130, 0, h + 20)
-    end
-end)
-
 -- ✅ Hàm tạo nút Dance (dùng container gốc)
 local danceBtns = {}  -- Lưu nút Dance để ẩn/hiện
 
