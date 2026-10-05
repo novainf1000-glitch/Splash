@@ -36,6 +36,8 @@ local function getAnimator()
 end
 
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
+local DanceTrack = nil
+local DanceActive = false
 
 local function LoadTrack(id)
     local a = getAnimator()
@@ -465,6 +467,48 @@ end)
 
 makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
+end)
+
+-- ✅ TOGGLE DANCE
+makeToggle("Dance", function(a)
+    if a then
+        -- BẬT: Ẩn nút animation + chạy Gangnam Style
+        DanceActive = true
+        
+        -- Ẩn tất cả nút animation
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = false
+            end
+        end
+        
+        -- Chạy animation Dance
+        pcall(function()
+            local animator = getAnimator()
+            if animator then
+                local anim = Instance.new("Animation")
+                anim.AnimationId = "rbxassetid://129764254213842"
+                DanceTrack = animator:LoadAnimation(anim)
+                DanceTrack.Priority = Enum.AnimationPriority.Action4
+                DanceTrack.Looped = true
+                DanceTrack:Play(0.1)
+            end
+        end)
+    else
+        -- TẮT: Hiện lại nút animation + dừng Dance
+        DanceActive = false
+        
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = true
+            end
+        end
+        
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0.1) end)
+            DanceTrack = nil
+        end
+    end
 end)
 
 -- ✅ NÚT FLING TOUCH
