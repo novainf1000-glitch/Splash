@@ -469,33 +469,20 @@ makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
 
--- ✅ TOGGLE DANCE
 makeToggle("Dance", function(a)
     if a then
-        -- BẬT: Ẩn nút animation + chạy Gangnam Style
+        -- ✅ BẬT: Ẩn nút animation + hiện container Dance
         DanceActive = true
         
-        -- Ẩn tất cả nút animation
         for _, ref in pairs(allBtns) do
             if ref and ref.frame and ref.frame.Parent then
                 ref.frame.Visible = false
             end
         end
         
-        -- Chạy animation Dance
-        pcall(function()
-            local animator = getAnimator()
-            if animator then
-                local anim = Instance.new("Animation")
-                anim.AnimationId = "rbxassetid://129764254213842"
-                DanceTrack = animator:LoadAnimation(anim)
-                DanceTrack.Priority = Enum.AnimationPriority.Action4
-                DanceTrack.Looped = true
-                DanceTrack:Play(0.1)
-            end
-        end)
+        danceContainer.Visible = true
     else
-        -- TẮT: Hiện lại nút animation + dừng Dance
+        -- ✅ TẮT: Hiện lại nút animation + ẩn container Dance
         DanceActive = false
         
         for _, ref in pairs(allBtns) do
@@ -504,6 +491,9 @@ makeToggle("Dance", function(a)
             end
         end
         
+        danceContainer.Visible = false
+        
+        -- Dừng animation dance
         if DanceTrack then
             pcall(function() DanceTrack:Stop(0.1) end)
             DanceTrack = nil
