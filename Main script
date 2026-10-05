@@ -293,6 +293,91 @@ createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
 
+-- ✅ CONTAINER DANCE (ẩn ban đầu)
+local danceContainer = Instance.new("Frame")
+danceContainer.Name = "DanceContainer"
+danceContainer.Size = UDim2.new(0, 130, 0, 150)
+danceContainer.Position = UDim2.new(0, 150, 0.05, 0)
+danceContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+danceContainer.BackgroundTransparency = 0.5
+danceContainer.BorderSizePixel = 0
+danceContainer.Active = true
+danceContainer.Visible = false
+danceContainer.Parent = sg
+Instance.new("UICorner", danceContainer).CornerRadius = UDim.new(0, 10)
+
+local danceStroke = Instance.new("UIStroke")
+danceStroke.Color = Color3.fromRGB(255, 100, 100)
+danceStroke.Thickness = 1.5
+danceStroke.Transparency = 0.3
+danceStroke.Parent = danceContainer
+
+local danceLayout = Instance.new("UIListLayout")
+danceLayout.Padding = UDim.new(0, 4)
+danceLayout.SortOrder = Enum.SortOrder.LayoutOrder
+danceLayout.Parent = danceContainer
+
+local dancePad = Instance.new("UIPadding")
+dancePad.PaddingTop = UDim.new(0, 10)
+dancePad.PaddingLeft = UDim.new(0, 5)
+dancePad.PaddingRight = UDim.new(0, 5)
+dancePad.PaddingBottom = UDim.new(0, 10)
+dancePad.Parent = danceContainer
+
+danceLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    local h = danceLayout.AbsoluteContentSize.Y
+    if h > 0 then
+        danceContainer.Size = UDim2.new(0, 130, 0, h + 20)
+    end
+end)
+
+-- ✅ Hàm tạo nút Dance
+local function createDanceBtn(name, id)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = danceContainer
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    
+    b.MouseEnter:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    end)
+    b.MouseLeave:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    end)
+    
+    b.MouseButton1Click:Connect(function()
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0) end)
+            DanceTrack = nil
+        end
+        
+        pcall(function()
+            local animator = getAnimator()
+            if animator then
+                local anim = Instance.new("Animation")
+                anim.AnimationId = "rbxassetid://" .. tostring(id)
+                DanceTrack = animator:LoadAnimation(anim)
+                DanceTrack.Priority = Enum.AnimationPriority.Action4
+                DanceTrack.Looped = true
+                DanceTrack:Play(0.1)
+            end
+        end)
+    end)
+    return b
+end
+
+-- ✅ THÊM NÚT DANCE
+createDanceBtn("Gangnam Style", 129764254213842)
+createDanceBtn("Floss", 507771019)
+createDanceBtn("Dab", 2482218350)
+
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
@@ -471,7 +556,7 @@ end)
 
 makeToggle("Dance", function(a)
     if a then
-        -- ✅ BẬT: Ẩn nút animation + hiện container Dance
+        -- BẬT: Ẩn 15 nút animation + hiện container Dance
         DanceActive = true
         
         for _, ref in pairs(allBtns) do
@@ -482,7 +567,7 @@ makeToggle("Dance", function(a)
         
         danceContainer.Visible = true
     else
-        -- ✅ TẮT: Hiện lại nút animation + ẩn container Dance
+        -- TẮT: Hiện lại 15 nút + ẩn container Dance
         DanceActive = false
         
         for _, ref in pairs(allBtns) do
@@ -493,7 +578,6 @@ makeToggle("Dance", function(a)
         
         danceContainer.Visible = false
         
-        -- Dừng animation dance
         if DanceTrack then
             pcall(function() DanceTrack:Stop(0.1) end)
             DanceTrack = nil
