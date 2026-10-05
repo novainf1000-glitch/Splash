@@ -293,15 +293,6 @@ createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
 
-
-
-local dancePad = Instance.new("UIPadding")
-dancePad.PaddingTop = UDim.new(0, 10)
-dancePad.PaddingLeft = UDim.new(0, 5)
-dancePad.PaddingRight = UDim.new(0, 5)
-dancePad.PaddingBottom = UDim.new(0, 10)
-dancePad.Parent = danceContainer
-
 danceLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     local h = danceLayout.AbsoluteContentSize.Y
     if h > 0 then
