@@ -351,6 +351,8 @@ end
 createDanceBtn("Gangnam Style", 129764254213842)
 createDanceBtn("Floss", 507771019)
 createDanceBtn("Dab", 2482218350)
+createDanceBtn("Haha", 10714350889)
+createDanceBtn("Frosty Flair", 10214311282)
 
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
