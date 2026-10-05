@@ -352,8 +352,8 @@ createDanceBtn("Gangnam Style", 129764254213842)
 createDanceBtn("Haha", 10714350889)
 createDanceBtn("Frosty Flair", 10214311282)
 createDanceBtn("Stepping", 72248021897603)
-createDanceBtn("Superhero Walk", 14618196485)
 createDanceBtn("Not found", 80227566492978)
+createDanceBtn("Hello Prey", 10714362852)
 
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
@@ -686,7 +686,7 @@ makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
     end
 end)
 
-makeSlider("Tốc chạy", 0, 1000, 16, function(v)
+makeSlider("Tốc chạy", 1, 100, 16, function(v)
     Settings.WalkSpeed = math.floor(v)
     if hum then hum.WalkSpeed = math.floor(v) end
 end)
