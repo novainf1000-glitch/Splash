@@ -293,29 +293,7 @@ createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
 
--- ✅ CONTAINER DANCE (ẩn ban đầu)
-local danceContainer = Instance.new("Frame")
-danceContainer.Name = "DanceContainer"
-danceContainer.Size = UDim2.new(0, 130, 0, 150)
-danceContainer.Position = UDim2.new(0, 150, 0.05, 0)
-danceContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-danceContainer.BackgroundTransparency = 0.5
-danceContainer.BorderSizePixel = 0
-danceContainer.Active = true
-danceContainer.Visible = false
-danceContainer.Parent = sg
-Instance.new("UICorner", danceContainer).CornerRadius = UDim.new(0, 10)
 
-local danceStroke = Instance.new("UIStroke")
-danceStroke.Color = Color3.fromRGB(255, 100, 100)
-danceStroke.Thickness = 1.5
-danceStroke.Transparency = 0.3
-danceStroke.Parent = danceContainer
-
-local danceLayout = Instance.new("UIListLayout")
-danceLayout.Padding = UDim.new(0, 4)
-danceLayout.SortOrder = Enum.SortOrder.LayoutOrder
-danceLayout.Parent = danceContainer
 
 local dancePad = Instance.new("UIPadding")
 dancePad.PaddingTop = UDim.new(0, 10)
@@ -331,18 +309,28 @@ danceLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     end
 end)
 
--- ✅ Hàm tạo nút Dance
+-- ✅ Hàm tạo nút Dance (dùng container gốc)
+local danceBtns = {}  -- Lưu nút Dance để ẩn/hiện
+
 local function createDanceBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    f.BorderSizePixel = 0
+    f.Visible = false  -- ✅ Ẩn ban đầu
+    f.Parent = container  -- ✅ Vào CONTAINER GỐC
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+    
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 30)
+    b.Size = UDim2.new(1, 0, 1, 0)
     b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     b.Text = name
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.GothamBold
-    b.TextSize = 11
+    b.TextSize = math.max(8, Settings.BtnSize)
     b.AutoButtonColor = false
     b.BorderSizePixel = 0
-    b.Parent = danceContainer
+    b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     
     b.MouseEnter:Connect(function()
@@ -370,10 +358,12 @@ local function createDanceBtn(name, id)
             end
         end)
     end)
+    
+    table.insert(danceBtns, f)
     return b
 end
 
--- ✅ THÊM NÚT DANCE
+-- ✅ THÊM NÚT DANCE (sẽ nằm chung container gốc)
 createDanceBtn("Gangnam Style", 129764254213842)
 createDanceBtn("Floss", 507771019)
 createDanceBtn("Dab", 2482218350)
@@ -556,7 +546,7 @@ end)
 
 makeToggle("Dance", function(a)
     if a then
-        -- BẬT: Ẩn 15 nút animation + hiện container Dance
+        -- ✅ BẬT: Ẩn nút animation + HIỆN nút Dance (cùng container)
         DanceActive = true
         
         for _, ref in pairs(allBtns) do
@@ -565,9 +555,13 @@ makeToggle("Dance", function(a)
             end
         end
         
-        danceContainer.Visible = true
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then
+                f.Visible = true
+            end
+        end
     else
-        -- TẮT: Hiện lại 15 nút + ẩn container Dance
+        -- ✅ TẮT: Hiện nút animation + Ẩn nút Dance
         DanceActive = false
         
         for _, ref in pairs(allBtns) do
@@ -576,7 +570,11 @@ makeToggle("Dance", function(a)
             end
         end
         
-        danceContainer.Visible = false
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then
+                f.Visible = false
+            end
+        end
         
         if DanceTrack then
             pcall(function() DanceTrack:Stop(0.1) end)
