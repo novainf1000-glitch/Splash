@@ -278,20 +278,21 @@ local function createBtn(name, id)
 end
 
 createBtn("Spin", 133180711707319)
-createBtn("Slap", 118273721275238)
-createBtn("Drop kick", 122990265693059)
 createBtn("Back kick", 90161679204210)
 createBtn("Super Spin Kick", 88814172353660)
+createBtn("Đá x3", 107652660092239)
+createBtn("MMA kick", 112687071860501)
+createBtn("Cú móc", 96853318026158)
+createBtn("Push", 93336754523717)
+createBtn("Slap", 118273721275238)
+createBtn("Slash", 82407225122935)
 createBtn("Super Punch", 129850328316768)
 createBtn("Somersault", 77072646896519)
-createBtn("MMA kick", 112687071860501)
 createBtn("Đá phản lực", 98481111917153)
-createBtn("Đá x3", 107652660092239)
-createBtn("Cú móc", 96853318026158)
-createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
-createBtn("Push", 93336754523717)
+createBtn("Drop kick", 122990265693059)
+
 
 -- ✅ Hàm tạo nút Dance (dùng container gốc)
 local danceBtns = {}  -- Lưu nút Dance để ẩn/hiện
