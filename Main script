@@ -136,7 +136,7 @@ containerPad.Parent = container
 local function updateContainerSize()
     local h = containerLayout.AbsoluteContentSize.Y
     if h > 0 then
-        container.Size = UDim2.new(0, 80, 0, h + 20)
+        container.Size = UDim2.new(0, 30, 0, h + 20)
     end
 end
 
