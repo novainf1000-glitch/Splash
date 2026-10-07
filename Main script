@@ -106,7 +106,7 @@ sg.Parent = CoreGui
 
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
-container.Size = UDim2.new(0, 80, 0, 80)
+container.Size = UDim2.new(0, 80, 0, 50)
 container.Position = UDim2.new(0, 10, 0.2, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
