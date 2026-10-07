@@ -106,7 +106,7 @@ sg.Parent = CoreGui
 
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
-container.Size = UDim2.new(0, 80, 0, 200)
+container.Size = UDim2.new(0, 80, 0, 180)
 container.Position = UDim2.new(0, 10, 0.2, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
@@ -136,7 +136,7 @@ containerPad.Parent = container
 local function updateContainerSize()
     local h = containerLayout.AbsoluteContentSize.Y
     if h > 0 then
-        container.Size = UDim2.new(0, 130, 0, h + 20)
+        container.Size = UDim2.new(0, 80, 0, h + 20)
     end
 end
 
@@ -282,6 +282,7 @@ createBtn("Kick", 129800542165697)
 createBtn("Front-kick", 130078703388131)
 createBtn("Spin-Kick", 93034961460846)
 createBtn("Side-Kick", 71877088928091)
+createBtn("Mesmer-Spin", 71679338021372)
 createBtn("Back kick", 90161679204210)
 createBtn("Super Spin Kick", 88814172353660)
 createBtn("Đá x3", 107652660092239)
@@ -289,6 +290,8 @@ createBtn("MMA kick", 112687071860501)
 createBtn("Cú móc", 96853318026158)
 createBtn("Push", 93336754523717)
 createBtn("Slap", 118273721275238)
+createBtn("Fling-punch", 118002791533481)
+createBtn("Boxing-fighting-punching", 126475463257664)
 createBtn("Slash", 82407225122935)
 createBtn("Super Punch", 129850328316768)
 createBtn("Somersault", 77072646896519)
