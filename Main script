@@ -178,8 +178,81 @@ end)
 
 local allBtns = {}
 local markedBtns = {}
+local loopBtns = {}  -- Lưu nút có animation loop
 
 local function createBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    f.BorderSizePixel = 0
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+
+    local redStroke = Instance.new("UIStroke")
+    redStroke.Color = Color3.fromRGB(255, 50, 50)
+    redStroke.Thickness = 2
+    redStroke.Enabled = false
+    redStroke.Name = "RedStroke"
+    redStroke.Parent = f
+
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = math.max(8, Settings.BtnSize)
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
+    local xMark = Instance.new("TextLabel")
+    xMark.Size = UDim2.new(1, 0, 1, 0)
+    xMark.BackgroundTransparency = 1
+    xMark.Text = "X"
+    xMark.TextColor3 = Color3.fromRGB(255, 50, 50)
+    xMark.TextStrokeTransparency = 0
+    xMark.TextStrokeColor3 = Color3.new(0, 0, 0)
+    xMark.Font = Enum.Font.GothamBold
+    xMark.TextSize = 20
+    xMark.Visible = false
+    xMark.Name = "XMark"
+    xMark.ZIndex = 5
+    xMark.Parent = f
+
+    local marked = false
+
+    b.MouseEnter:Connect(function()
+        if not Settings.DeleteMode and ActiveButton ~= b then
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        end
+    end)
+    b.MouseLeave:Connect(function()
+        if not Settings.DeleteMode and ActiveButton ~= b then
+            b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        end
+    end)
+
+    b.MouseButton1Click:Connect(function()
+        if Settings.DeleteMode then
+            marked = not marked
+            xMark.Visible = marked
+            if marked then
+                local exists = false
+                for _, m in pairs(markedBtns) do
+                    if m == f then exists = true break end
+                end
+                if not exists then table.insert(markedBtns, f) end
+            else
+                for i, m in pairs(markedBtns) do
+                    if m == f then table.remove(markedBtns, i) break end
+                end
+            end
+            return
+        end
+
+local function createBtn(name, id, loopAnim)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
     f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -259,6 +332,11 @@ local function createBtn(name, id)
             StopTrack()
             local tr = LoadTrack(id)
             if tr then
+                -- ✅ Nếu là nút Loop → set Looped = true
+                if loopAnim then
+                    tr.Looped = true
+                end
+                
                 IsPlaying = true
                 ActiveButton = b
                 b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -289,7 +367,7 @@ createBtn("Đá x3", 107652660092239)
 createBtn("MMA kick", 112687071860501)
 createBtn("Cú móc", 96853318026158)
 createBtn("Push", 93336754523717)
-createBtn("Mm2", 133457275511275)
+createBtn("Mm2", 133457275511275, true)  -- ✅ true = loop vô hạn
 createBtn("Slap", 118273721275238)
 createBtn("Fling-punch", 118002791533481)
 createBtn("Boxing-fighting-punching", 126475463257664)
@@ -383,7 +461,6 @@ createDanceBtn("Epic Dance", 139130639469681)
 createDanceBtn("Bodybuilder", 10713990381)
 createDanceBtn("Name not found 2", 93014787120483)
 createDanceBtn("Name not found 3", 84769245763075)
-createDanceBtn("Mm2", 133457275511275)
 
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
