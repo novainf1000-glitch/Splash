@@ -272,7 +272,6 @@ local function createBtn(name, id)
     return b
 end
 
-createBtn("Spin", 133180711707319)
 -- ✅ HÀM TẠO NÚT LOOP (animation chạy liên tục)
 local function createLoopBtn(name, id)
     local f = Instance.new("Frame")
@@ -379,6 +378,7 @@ local function createLoopBtn(name, id)
     return b
 end
 
+createBtn("Spin", 133180711707319)
 createBtn("Slap", 118273721275238)
 createBtn("Drop kick", 122990265693059)
 createBtn("Back kick", 90161679204210)
