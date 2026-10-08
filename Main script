@@ -273,6 +273,112 @@ local function createBtn(name, id)
 end
 
 createBtn("Spin", 133180711707319)
+-- ✅ HÀM TẠO NÚT LOOP (animation chạy liên tục)
+local function createLoopBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+    f.BorderSizePixel = 0
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = math.max(8, Settings.BtnSize)
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
+    local xMark = Instance.new("TextLabel")
+    xMark.Size = UDim2.new(1, 0, 1, 0)
+    xMark.BackgroundTransparency = 1
+    xMark.Text = "X"
+    xMark.TextColor3 = Color3.fromRGB(255, 50, 50)
+    xMark.TextStrokeTransparency = 0
+    xMark.TextStrokeColor3 = Color3.new(0, 0, 0)
+    xMark.Font = Enum.Font.GothamBold
+    xMark.TextSize = 20
+    xMark.Visible = false
+    xMark.Name = "XMark"
+    xMark.ZIndex = 5
+    xMark.Parent = f
+
+    local marked = false
+
+    b.MouseEnter:Connect(function()
+        if not Settings.DeleteMode and ActiveButton ~= b then
+            b.BackgroundColor3 = Color3.fromRGB(50, 0, 80)
+        end
+    end)
+    b.MouseLeave:Connect(function()
+        if not Settings.DeleteMode and ActiveButton ~= b then
+            b.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+        end
+    end)
+
+    b.MouseButton1Click:Connect(function()
+        if Settings.DeleteMode then
+            marked = not marked
+            xMark.Visible = marked
+            if marked then
+                local exists = false
+                for _, m in pairs(markedBtns) do
+                    if m == f then exists = true break end
+                end
+                if not exists then table.insert(markedBtns, f) end
+            else
+                for i, m in pairs(markedBtns) do
+                    if m == f then table.remove(markedBtns, i) break end
+                end
+            end
+            return
+        end
+
+        if ActiveButton == b and IsPlaying then
+            StopTrack()
+            ActiveButton = nil
+            b.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+        else
+            StopTrack()
+            local a = getAnimator()
+            if not a then return end
+            
+            local animId = "rbxassetid://" .. tostring(id)
+            local ok, result = pcall(function() return game:GetObjects(animId) end)
+            if ok and result and #result > 0 and result[1]:IsA("Animation") then
+                animId = result[1].AnimationId
+            end
+            
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            
+            local tr
+            pcall(function()
+                tr = a:LoadAnimation(anim)
+            end)
+            
+            if tr then
+                tr.Priority = Enum.AnimationPriority.Action4
+                tr.Looped = true  -- ✅ LOOP VÔ HẠN
+                pcall(function() tr:Play(0.1, 1, Settings.Speed) end)
+                
+                CurrentTrack = tr
+                IsPlaying = true
+                ActiveButton = b
+                b.BackgroundColor3 = Color3.fromRGB(80, 0, 120)
+            end
+        end
+    end)
+
+    table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
+    return b
+end
+
 createBtn("Slap", 118273721275238)
 createBtn("Drop kick", 122990265693059)
 createBtn("Back kick", 90161679204210)
@@ -287,7 +393,15 @@ createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
-createBtn("Mm2", 133457275511275)
+createBtn("Dropkick", 127764273000599)
+createBtn("Kick", 129800542165697)
+createBtn("Side-Kick", 71877088928091)
+createBtn("Front-kick", 130078703388131)
+createBtn("Spin-Kick", 93034961460846)
+createBtn("Mesmer-Spin", 71679338021372)
+createBtn("Fling-punch", 118002791533481)
+createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
+createLoopBtn("Mm2", 133457275511275)
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
