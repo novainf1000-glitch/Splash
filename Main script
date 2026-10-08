@@ -36,6 +36,7 @@ local function getAnimator()
 end
 
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
+local DanceTrack = nil
 
 local function LoadTrack(id)
     local a = getAnimator()
@@ -402,6 +403,81 @@ createBtn("Mesmer-Spin", 71679338021372)
 createBtn("Fling-punch", 118002791533481)
 createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
 createLoopBtn("Mm2", 133457275511275)
+
+-- ✅ DANCE SYSTEM
+local danceBtns = {}
+
+local function createDanceBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    f.BorderSizePixel = 0
+    f.Visible = false
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = math.max(8, Settings.BtnSize)
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
+    b.MouseEnter:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    end)
+    b.MouseLeave:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    end)
+
+    b.MouseButton1Click:Connect(function()
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0) end)
+            DanceTrack = nil
+        end
+
+        pcall(function()
+            local animator = getAnimator()
+            if not animator then return end
+
+            local animId = "rbxassetid://" .. tostring(id)
+            local ok, result = pcall(function() return game:GetObjects(animId) end)
+            if ok and result and #result > 0 and result[1]:IsA("Animation") then
+                animId = result[1].AnimationId
+            end
+
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            DanceTrack = animator:LoadAnimation(anim)
+            DanceTrack.Priority = Enum.AnimationPriority.Action4
+            DanceTrack.Looped = true
+            DanceTrack:Play(0.1)
+        end)
+    end)
+
+    table.insert(danceBtns, f)
+    return b
+end
+
+-- ✅ THÊM 13 NÚT DANCE
+createDanceBtn("Gangnam Style", 129764254213842)
+createDanceBtn("Haha", 10714350889)
+createDanceBtn("Frosty Flair", 10214311282)
+createDanceBtn("Stepping", 72248021897603)
+createDanceBtn("Name not found", 80227566492978)
+createDanceBtn("Hello Prey", 10714362852)
+createDanceBtn("Sit", 74035416563851)
+createDanceBtn("Sit 2", 112473756505351)
+createDanceBtn("Skibi", 78927657777256)
+createDanceBtn("Epic Dance", 139130639469681)
+createDanceBtn("Bodybuilder", 10713990381)
+createDanceBtn("Name not found 2", 93014787120483)
+createDanceBtn("Name not found 3", 84769245763075)
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
@@ -575,6 +651,42 @@ end)
 
 makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
+end)
+-- ✅ TOGGLE DANCE
+makeToggle("Dance", function(a)
+    if a then
+        -- BẬT: Ẩn nút animation + HIỆN nút Dance
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = false
+            end
+        end
+
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then
+                f.Visible = true
+            end
+        end
+    else
+        -- TẮT: Hiện nút animation + Ẩn nút Dance
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = true
+            end
+        end
+
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then
+                f.Visible = false
+            end
+        end
+
+        -- Dừng dance
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0.1) end)
+            DanceTrack = nil
+        end
+    end
 end)
 
 makeButton("Fling Touch", function(b)
