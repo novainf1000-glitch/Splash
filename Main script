@@ -288,7 +288,6 @@ createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
 createBtn("Mm2", 133457275511275)
-
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
