@@ -1,4 +1,4 @@
---[[ GUI ANIMATION + FLING TOUCH ]]
+--[[ GUI ANIMATION ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -36,8 +36,6 @@ local function getAnimator()
 end
 
 local CurrentTrack, IsPlaying, ActiveButton = nil, false, nil
-local DanceTrack = nil
-local DanceActive = false
 
 local function LoadTrack(id)
     local a = getAnimator()
@@ -70,7 +68,6 @@ local function StopTrack()
     IsPlaying = false
 end
 
--- NOCLIP PLAYER
 local noclipPlayerConn = nil
 
 local function startNoclipPlayer()
@@ -97,7 +94,6 @@ local function stopNoclipPlayer()
     end
 end
 
--- GUI
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
@@ -106,7 +102,7 @@ sg.Parent = CoreGui
 
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
-container.Size = UDim2.new(0, 50, 0, 10)
+container.Size = UDim2.new(0, 130, 0, 200)
 container.Position = UDim2.new(0, 10, 0.2, 0)
 container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 container.BackgroundTransparency = 0.5
@@ -136,7 +132,7 @@ containerPad.Parent = container
 local function updateContainerSize()
     local h = containerLayout.AbsoluteContentSize.Y
     if h > 0 then
-        container.Size = UDim2.new(0, 100, 0, h + 10)
+        container.Size = UDim2.new(0, 130, 0, h + 20)
     end
 end
 
@@ -144,7 +140,6 @@ containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function
     updateContainerSize()
 end)
 
--- Kéo container
 local cDrag = false
 local cs_, cp_
 container.InputBegan:Connect(function(i)
@@ -178,81 +173,8 @@ end)
 
 local allBtns = {}
 local markedBtns = {}
-local loopBtns = {}  -- Lưu nút có animation loop
 
 local function createBtn(name, id)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
-    f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    f.BorderSizePixel = 0
-    f.Parent = container
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
-
-    local redStroke = Instance.new("UIStroke")
-    redStroke.Color = Color3.fromRGB(255, 50, 50)
-    redStroke.Thickness = 2
-    redStroke.Enabled = false
-    redStroke.Name = "RedStroke"
-    redStroke.Parent = f
-
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 1, 0)
-    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    b.Text = name
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = math.max(8, Settings.BtnSize)
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.Parent = f
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-
-    local xMark = Instance.new("TextLabel")
-    xMark.Size = UDim2.new(1, 0, 1, 0)
-    xMark.BackgroundTransparency = 1
-    xMark.Text = "X"
-    xMark.TextColor3 = Color3.fromRGB(255, 50, 50)
-    xMark.TextStrokeTransparency = 0
-    xMark.TextStrokeColor3 = Color3.new(0, 0, 0)
-    xMark.Font = Enum.Font.GothamBold
-    xMark.TextSize = 20
-    xMark.Visible = false
-    xMark.Name = "XMark"
-    xMark.ZIndex = 5
-    xMark.Parent = f
-
-    local marked = false
-
-    b.MouseEnter:Connect(function()
-        if not Settings.DeleteMode and ActiveButton ~= b then
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        end
-    end)
-    b.MouseLeave:Connect(function()
-        if not Settings.DeleteMode and ActiveButton ~= b then
-            b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        end
-    end)
-
-    b.MouseButton1Click:Connect(function()
-        if Settings.DeleteMode then
-            marked = not marked
-            xMark.Visible = marked
-            if marked then
-                local exists = false
-                for _, m in pairs(markedBtns) do
-                    if m == f then exists = true break end
-                end
-                if not exists then table.insert(markedBtns, f) end
-            else
-                for i, m in pairs(markedBtns) do
-                    if m == f then table.remove(markedBtns, i) break end
-                end
-            end
-            return
-        end
-
-local function createBtn(name, id, loopAnim)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
     f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -332,11 +254,6 @@ local function createBtn(name, id, loopAnim)
             StopTrack()
             local tr = LoadTrack(id)
             if tr then
-                -- ✅ Nếu là nút Loop → set Looped = true
-                if loopAnim then
-                    tr.Looped = true
-                end
-                
                 IsPlaying = true
                 ActiveButton = b
                 b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -356,111 +273,21 @@ local function createBtn(name, id, loopAnim)
 end
 
 createBtn("Spin", 133180711707319)
-createBtn("Kick", 129800542165697)
-createBtn("Front-kick", 130078703388131)
-createBtn("Spin-Kick", 93034961460846)
-createBtn("Side-Kick", 71877088928091)
-createBtn("Mesmer-Spin", 71679338021372)
+createBtn("Slap", 118273721275238)
+createBtn("Drop kick", 122990265693059)
 createBtn("Back kick", 90161679204210)
 createBtn("Super Spin Kick", 88814172353660)
-createBtn("Đá x3", 107652660092239)
-createBtn("MMA kick", 112687071860501)
-createBtn("Cú móc", 96853318026158)
-createBtn("Push", 93336754523717)
-createBtn("Mm2", 133457275511275, true)  -- ✅ true = loop vô hạn
-createBtn("Slap", 118273721275238)
-createBtn("Fling-punch", 118002791533481)
-createBtn("Boxing-fighting-punching", 126475463257664)
-createBtn("Slash", 82407225122935)
 createBtn("Super Punch", 129850328316768)
 createBtn("Somersault", 77072646896519)
+createBtn("MMA kick", 112687071860501)
 createBtn("Đá phản lực", 98481111917153)
-createBtn("Dropkick - WORKS", 109642955948065)
-createBtn("DropKick - Emote", 127550355786448)
-createBtn("Dropkick", 127764273000599)
-createBtn("Fling-Dropkick", 140650796615410)
+createBtn("Đá x3", 107652660092239)
+createBtn("Cú móc", 96853318026158)
+createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
-createBtn("Drop kick", 122990265693059)
-
-
--- ✅ Hàm tạo nút Dance (dùng container gốc)
-local danceBtns = {}  -- Lưu nút Dance để ẩn/hiện
-
-local function createDanceBtn(name, id)
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
-    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    f.BorderSizePixel = 0
-    f.Visible = false
-    f.Parent = container
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
-    
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 1, 0)
-    b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    b.Text = name
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = math.max(8, Settings.BtnSize)
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.Parent = f
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    
-    b.MouseEnter:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
-    end)
-    b.MouseLeave:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    end)
-    
-    b.MouseButton1Click:Connect(function()
-        if DanceTrack then
-            pcall(function() DanceTrack:Stop(0) end)
-            DanceTrack = nil
-        end
-        
-        -- ✅ QUAN TRỌNG: Dùng GetObjects giống createBtn
-        pcall(function()
-            local animator = getAnimator()
-            if not animator then return end
-            
-            local animId = "rbxassetid://" .. tostring(id)
-            
-            -- ✅ Force load qua GetObjects (bypass private)
-            local ok, result = pcall(function() return game:GetObjects(animId) end)
-            if ok and result and #result > 0 and result[1]:IsA("Animation") then
-                animId = result[1].AnimationId
-            end
-            
-            local anim = Instance.new("Animation")
-            anim.AnimationId = animId
-            DanceTrack = animator:LoadAnimation(anim)
-            DanceTrack.Priority = Enum.AnimationPriority.Action4
-            DanceTrack.Looped = true
-            DanceTrack:Play(0.1)
-        end)
-    end)
-    
-    table.insert(danceBtns, f)
-    return b
-end
-
--- ✅ THÊM NÚT DANCE (sẽ nằm chung container gốc)
-createDanceBtn("Gangnam Style", 129764254213842)
-createDanceBtn("Haha", 10714350889)
-createDanceBtn("Frosty Flair", 10214311282)
-createDanceBtn("Stepping", 72248021897603)
-createDanceBtn("Name not found", 80227566492978)
-createDanceBtn("Hello Prey", 10714362852)
-createDanceBtn("Sit", 74035416563851)
-createDanceBtn("Sit 2", 112473756505351)
-createDanceBtn("Skibi", 78927657777256)
-createDanceBtn("Epic Dance", 139130639469681)
-createDanceBtn("Bodybuilder", 10713990381)
-createDanceBtn("Name not found 2", 93014787120483)
-createDanceBtn("Name not found 3", 84769245763075)
+createBtn("Push", 93336754523717)
+createBtn("Mm2", 133457275511275)
 
 local delFrame = Instance.new("Frame")
 delFrame.Size = UDim2.new(0, 40, 0, 40)
@@ -469,7 +296,6 @@ delFrame.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 delFrame.BorderSizePixel = 0
 delFrame.Active = true
 delFrame.Visible = false
-delFrame.Name = "DeleteAllBtn"
 delFrame.Parent = sg
 Instance.new("UICorner", delFrame).CornerRadius = UDim.new(0, 8)
 
@@ -638,56 +464,15 @@ makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
 
-makeToggle("Dance", function(a)
-    if a then
-        -- ✅ BẬT: Ẩn nút animation + HIỆN nút Dance (cùng container)
-        DanceActive = true
-        
-        for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = false
-            end
-        end
-        
-        for _, f in pairs(danceBtns) do
-            if f and f.Parent then
-                f.Visible = true
-            end
-        end
-    else
-        -- ✅ TẮT: Hiện nút animation + Ẩn nút Dance
-        DanceActive = false
-        
-        for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = true
-            end
-        end
-        
-        for _, f in pairs(danceBtns) do
-            if f and f.Parent then
-                f.Visible = false
-            end
-        end
-        
-        if DanceTrack then
-            pcall(function() DanceTrack:Stop(0.1) end)
-            DanceTrack = nil
-        end
-    end
-end)
-
--- ✅ NÚT FLING TOUCH
 makeButton("Fling Touch", function(b)
-    b.Text = "Fling Touch ✓"
+    b.Text = "Fling Touch OK"
     task.wait(1)
     b.Text = "Fling Touch"
-    
-    -- Gọi GUI Touch Fling
-   loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Touch%20fling"))() 
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Touch%20fling"))()
+    end)
 end)
 
--- Script ngoài
 local function makeScriptBtn(name, url)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -10, 0, 30)
