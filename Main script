@@ -456,6 +456,10 @@ createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
 createLoopBtn("Mm2", 133457275511275)
 createLoopBtn("Fling-punch", 118002791533481)
 createLoopBtn("Knife Hold", 109192979353402)
+createLoopBtn("Sword-Hold-Idle", 105788596267817)
+createLoopBtn("REAPERS-SHOWTIME-DANCE", 90674844728471)
+createLoopBtn("R15-Glow-Motion-Idle", 133119653762400)
+createLoopBtn("Murderer-Knife-Hold", 109192979353402)
 
 -- ✅ DANCE SYSTEM
 local danceBtns = {}
