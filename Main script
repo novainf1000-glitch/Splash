@@ -20,7 +20,6 @@ local Settings = {
 
 local char = player.Character or player.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
-player.CharacterAdded:Connect(function(c)
     char = c
     hum = c:WaitForChild("Humanoid")
     task.wait(0.5)
