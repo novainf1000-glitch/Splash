@@ -113,12 +113,12 @@ local function setupRespawnCut()
             task.wait(realTime)
             
             -- ✅ GIỮ NGUYÊN POSE CUỐI trong HoldTime giây
-            if HoldTime > 0 then
+            if HoldTime > 3 then
                 task.wait(HoldTime)
             end
             
             if track.IsPlaying then
-                pcall(function() track:Stop(0.1) end)
+                pcall(function() track:Stop(1) end)
             end
         end)
     end
