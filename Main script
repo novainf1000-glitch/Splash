@@ -57,8 +57,8 @@ player.CharacterAdded:Connect(function(newChar)
     trackDeathPosition(newChar)
 end)
 
--- ✅ RESPAWN ANIMATION (chạy mỗi lần hồi sinh, tự dừng sau 4s)
-local RespawnAnimID = 119026808107564 -- ← ĐỔI ID Ở ĐÂY
+-- ✅ RESPAWN ANIMATION (chạy NGAY khi hồi sinh, tự dừng sau 4s)
+local RespawnAnimID = 134826825394657 -- ← ĐỔI ID Ở ĐÂY
 local RespawnDuration = 4             -- ← ĐỔI SỐ GIÂY Ở ĐÂY
 
 local function setupRespawnAnimation()
@@ -66,10 +66,14 @@ local function setupRespawnAnimation()
     
     local function playRespawnAnim(c)
         if not c then return end
-        local hum = c:WaitForChild("Humanoid", 5)
-        if not hum then return end
         
-        task.wait(0.3)
+        -- ✅ KHÔNG CHỜ - chạy ngay
+        local hum = c:FindFirstChildOfClass("Humanoid")
+        if not hum then
+            -- Nếu chưa có Humanoid thì chờ tối thiểu
+            hum = c:WaitForChild("Humanoid", 1)
+            if not hum then return end
+        end
         
         pcall(function()
             local animator = hum:FindFirstChildOfClass("Animator")
@@ -90,7 +94,8 @@ local function setupRespawnAnimation()
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action4
             track.Looped = true
-            track:Play(0.1)
+            track:Play(0)          -- ✅ fade 0s = chạy ngay tức thì
+            -- Hoặc track:Play(0.1) nếu muốn mượt hơn một chút
             
             -- ✅ Tự dừng sau RespawnDuration giây
             task.delay(RespawnDuration, function()
@@ -106,11 +111,13 @@ local function setupRespawnAnimation()
         playRespawnAnim(char)
     end
     
-    -- Chạy mỗi lần respawn
-    player.CharacterAdded:Connect(playRespawnAnim)
+    -- Chạy mỗi lần respawn — KHÔNG CHỜ
+    player.CharacterAdded:Connect(function(newChar)
+        playRespawnAnim(newChar)   -- ✅ Gọi ngay, không task.wait
+    end)
 end
 
-setupRespawnAnimation()   -- 👈 CHỈ GỌI 1 LẦN
+setupRespawnAnimation()
     
 -- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
 local function getAnimator()
