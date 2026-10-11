@@ -96,41 +96,51 @@ player.CharacterAdded:Connect(function(newChar)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
     
-    task.wait(0.3)
+    task.wait(0)
     
-    -- ✅ 2A: TELEPORT VỀ VỊ TRÍ CHẾT (5s + ngắt cuối)
-    if Settings.KeepDeathPos and lastDeathPosition then
-        local target = lastDeathPosition
-        local startTime = tick()
+    -- ✅ TELEPORT 1 LẦN + chỉ giữ nếu bị server đẩy
+if Settings.KeepDeathPos and lastDeathPosition then
+    local target = lastDeathPosition
+    local startTime = tick()
+    local teleported = false
+    local lastPos = nil
+    
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        local elapsed = tick() - startTime
+        if not newRoot or not newRoot.Parent then
+            conn:Disconnect()
+            return
+        end
         
-        local conn
-        conn = RunService.Heartbeat:Connect(function()
-            local elapsed = tick() - startTime
-            if not newRoot or not newRoot.Parent then
-                conn:Disconnect()
-                return
-            end
+        -- ✅ Teleport 1 lần duy nhất lúc đầu
+        if not teleported then
+            newRoot.CFrame = target
+            newRoot.AssemblyLinearVelocity = Vector3.zero
+            newRoot.AssemblyAngularVelocity = Vector3.zero
+            teleported = true
+            lastPos = target.Position
+        end
+        
+        -- ✅ Trong 1.5s đầu: chỉ kéo về nếu server đẩy ĐỘT NGỘT
+        -- (không kéo nếu người chơi tự di chuyển)
+        if elapsed < 1.5 then
+            local currentPos = newRoot.Position
+            local expectedDist = (currentPos - lastPos).Magnitude
             
-            if elapsed < 5 then
+            -- Nếu bị đẩy > 15 studs trong 1 frame → server teleport
+            if expectedDist > 15 then
                 newRoot.CFrame = target
                 newRoot.AssemblyLinearVelocity = Vector3.zero
-                newRoot.AssemblyAngularVelocity = Vector3.zero
-            elseif elapsed < 10 then
-                local dist = (newRoot.Position - target.Position).Magnitude
-                if dist > 5 then
-                    newRoot.CFrame = target
-                    newRoot.AssemblyLinearVelocity = Vector3.zero
-                end
+                lastPos = target.Position
             else
-                -- Ngắt cuối: teleport 1 lần nữa
-                if newRoot and newRoot.Parent then
-                    newRoot.CFrame = target
-                    newRoot.AssemblyLinearVelocity = Vector3.zero
-                end
-                conn:Disconnect()
+                lastPos = currentPos   -- cho phép di chuyển
             end
-        end)
-    end
+        else
+            conn:Disconnect()
+        end
+    end)
+end
     
     -- ✅ 2B: PHÁT ANIMATION CẮT ĐOẠN GIỮA
     task.spawn(function()
