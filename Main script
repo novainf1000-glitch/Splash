@@ -45,25 +45,7 @@ RunService.Heartbeat:Connect(function()
         lastDeathPosition = root.CFrame
     end
 end)
-
-player.CharacterAdded:Connect(function(newChar)
-    local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
-    local newHum = newChar:WaitForChild("Humanoid", 10)
-    if not newRoot or not newHum then return end
-    
-    -- BƯỚC 1: TELEPORT
-    if lastDeathPosition then
-        local target = lastDeathPosition
-        local startTime = tick()
-        while tick() - startTime < 1.5 do
-            if newRoot.Parent then
-                newRoot.CFrame = target
-                newRoot.AssemblyLinearVelocity = Vector3.zero
-            end
-            RunService.Heartbeat:Wait()
-        end
-    end
-     
+  
 player.CharacterAdded:Connect(function(newChar)
     print("🔥 CharacterAdded fire")
     
