@@ -14,6 +14,7 @@ local Settings = {
     HideMode = false,
     DeleteMode = false,
     BtnSize = 7,
+    KeepDeathPos = false,   -- 🆕 THÊM DÒNG NÀY
 }
 
 local char = player.Character or player.CharacterAdded:Wait()
@@ -25,8 +26,39 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
+-- ✅ GIỮ VỊ TRÍ KHI HỒI SINH (có toggle)
+local lastDeathPosition = nil
+
+local function trackDeathPosition(c)
+    if not c then return end
+    local root = c:FindFirstChild("HumanoidRootPart")
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if root and hum then
+        hum.Died:Connect(function()
+            -- Chỉ lưu vị trí khi tính năng BẬT
+            if Settings.KeepDeathPos then
+                lastDeathPosition = root.CFrame
+            end
+        end)
+    end
+end
+
+if char then trackDeathPosition(char) end
+
+player.CharacterAdded:Connect(function(newChar)
+    task.wait(0.1)
+    -- Chỉ teleport khi tính năng BẬT và có vị trí đã lưu
+    if Settings.KeepDeathPos and lastDeathPosition then
+        local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
+        if newRoot then
+            newRoot.CFrame = lastDeathPosition + Vector3.new(0, 3, 0)
+        end
+    end
+    trackDeathPosition(newChar)
+end)
+
 -- ✅ RESPAWN ANIMATION (chạy khi hồi sinh)
-local RespawnAnimID = 89198573930777  -- ← ĐỔI ID Ở ĐÂY
+local RespawnAnimID = 119026808107564  -- ← ĐỔI ID Ở ĐÂY
 
 local function setupRespawnAnimation()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
@@ -35,26 +67,20 @@ local function setupRespawnAnimation()
         if not c then return end
         local hum = c:FindFirstChildOfClass("Humanoid")
         if not hum then return end
-        
-        -- Chờ nhân vật load xong
         task.wait(0.3)
-        
         pcall(function()
             local animator = hum:FindFirstChildOfClass("Animator")
             if not animator then
                 animator = Instance.new("Animator")
                 animator.Parent = hum
             end
-            
             local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
                 animId = result[1].AnimationId
             end
-            
             local anim = Instance.new("Animation")
             anim.AnimationId = animId
-            
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action4
             track.Looped = false
@@ -62,16 +88,16 @@ local function setupRespawnAnimation()
         end)
     end
     
-    -- Chạy cho nhân vật hiện tại (nếu đang sống)
     if char and char:FindFirstChildOfClass("Humanoid") then
         playRespawnAnim(char)
     end
     
-    -- Chạy mỗi khi nhân vật mới xuất hiện (respawn)
     player.CharacterAdded:Connect(playRespawnAnim)
 end
 
-setupRespawnAnimation()
+setupRespawnAnimation()   -- 👈 CHỈ GỌI 1 LẦN
+
+-- ... phần còn lại của script giữ nguyên
 
 -- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
 local function getAnimator()
@@ -767,6 +793,14 @@ end)
 
 makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
+end)
+
+-- ✅ TOGGLE GIỮ VỊ TRÍ KHI HỒI SINH
+makeToggle("Giữ vị trí khi chết", function(a)
+    Settings.KeepDeathPos = a
+    if not a then
+        lastDeathPosition = nil   -- Reset khi tắt
+    end
 end)
 
 -- ✅ TOGGLE DANCE
