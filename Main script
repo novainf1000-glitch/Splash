@@ -1,4 +1,4 @@
---[[ GUI ANIMATION ]]
+--[[ GUI ANIMATION - PART 1 ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -14,7 +14,8 @@ local Settings = {
     HideMode = false,
     DeleteMode = false,
     BtnSize = 7,
-    KeepDeathPos = false,   -- 🆕 THÊM DÒNG NÀY
+    KeepDeathPos = false,
+    FlingActive = false,
 }
 
 local char = player.Character or player.CharacterAdded:Wait()
@@ -26,182 +27,18 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
--- ✅ LƯU VỊ TRÍ CHÍNH XÁC TỪ NHIỀU BODY PARTS
-local lastDeathPosition = nil
-local lastDeathVelocity = nil
-
--- Hàm quét tất cả parts và tính vị trí trung bình
-local function getAccuratePosition(character)
-    if not character then return nil end
-    
-    local parts = {}
-    local totalPos = Vector3.zero
-    local count = 0
-    local lowestY = math.huge
-    
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            -- Bỏ qua part không quan trọng
-            if part.Name ~= "Handle" and not part.Name:match("Accessory") then
-                table.insert(parts, part)
-                totalPos = totalPos + part.Position
-                count = count + 1
-                if part.Position.Y < lowestY then
-                    lowestY = part.Position.Y
-                end
-            end
-        end
-    end
-    
-    if count == 0 then return nil end
-    
-    -- Trung bình cộng tất cả parts
-    local avgPos = totalPos / count
-    
-    -- Ưu tiên vị trí thấp nhất (chỗ chạm đất)
-    local finalY = math.min(avgPos.Y, lowestY + 3)
-    
-    return Vector3.new(avgPos.X, finalY, avgPos.Z), parts
-end
-
--- Lưu liên tục khi sống
-RunService.Heartbeat:Connect(function()
-    if not Settings.KeepDeathPos then return end
-    if Settings.FlingActive then return end
-    local c = player.Character
-    if not c then return end
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-    
-    -- ✅ Lấy vị trí chính xác từ nhiều parts
-    local pos = getAccuratePosition(c)
-    if pos then
-        lastDeathPosition = CFrame.new(pos)
-        
-        -- Lưu velocity để biết hướng chết
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if root then
-            lastDeathVelocity = root.AssemblyLinearVelocity
-        end
-    end
-end)
-
--- ✅ RESPAWN: QUÉT BODY + CẮT ANIMATION
-local RespawnAnimID = 119026808107564
-local SkipStart = 4
-local SkipEnd = 9.8
-local TotalDuration = 10.8
-local lastDeathPosition = nil   -- ✅ CHỈ KHAI BÁO 1 LẦN
-local lastDeathVelocity = nil
-
--- ========== HÀM QUÉT BODY PARTS ==========
-local function getAccuratePosition(character)
-    if not character then return nil end
-    
-    local totalPos = Vector3.zero
-    local count = 0
-    local lowestY = math.huge
-    
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            if part.Name ~= "Handle" 
-                and not part.Name:match("Accessory")
-                and not part.Name:match("Hat")
-                and not part.Name:match("Hair") then
-                totalPos = totalPos + part.Position
-                count = count + 1
-                if part.Position.Y < lowestY then
-                    lowestY = part.Position.Y
-                end
-            end
-        end
-    end
-    
-    if count == 0 then return nil end
-    
-    local avgPos = totalPos / count
-    local finalY = math.min(avgPos.Y, lowestY + 3)
-    
-    return Vector3.new(avgPos.X, finalY, avgPos.Z)
-end
-
--- ========== PHẦN 1: LƯU VỊ TRÍ (CHỈ 1 HEARTBEAT) ==========
-RunService.Heartbeat:Connect(function()
-    if not Settings.KeepDeathPos then return end
-    if Settings.FlingActive then return end
-    local c = player.Character
-    if not c then return end
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-    
-    -- ✅ Dùng quét body parts
-    local pos = getAccuratePosition(c)
-    if pos then
-        lastDeathPosition = CFrame.new(pos)
-        
-        local root = c:FindFirstChild("HumanoidRootPart")
-        if root then
-            lastDeathVelocity = root.AssemblyLinearVelocity
-        end
-    end
-end)
-
--- ========== PHẦN 2: XỬ LÝ KHI RESPAWN ==========
-player.CharacterAdded:Connect(function(newChar)
-    local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
-    local newHum = newChar:WaitForChild("Humanoid", 10)
-    if not newRoot or not newHum then return end
-    
-    task.wait(0.3)
-    
-    -- ✅ 2A: TELEPORT 1 LẦN
-    if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
-        local target = lastDeathPosition
-        local startTime = tick()
-        local teleported = false
-        local lastPos = nil
-        
-        local conn
-        conn = RunService.Heartbeat:Connect(function()
-            local elapsed = tick() - startTime
-            if not newRoot or not newRoot.Parent then
-                conn:Disconnect()
-                return
-            end
-            
-            if Settings.FlingActive then
-                conn:Disconnect()
-                return
-            end
-            
-            if not teleported then
-                newRoot.CFrame = target
-                newRoot.AssemblyLinearVelocity = Vector3.zero
-                newRoot.AssemblyAngularVelocity = Vector3.zero
-                teleported = true
-                lastPos = target.Position
-            end
-            
-            if elapsed < 1.5 then
-                local currentPos = newRoot.Position
-                local expectedDist = (currentPos - lastPos).Magnitude
-
 -- ✅ RESPAWN: QUÉT BODY + CHỐNG SERVER + CẮT ANIMATION
 local RespawnAnimID = 119026808107564
 local SkipStart = 4
 local SkipEnd = 9.8
 local TotalDuration = 10.8
-local lastDeathPosition = nil   -- ✅ CHỈ KHAI BÁO 1 LẦN
-local lastDeathParts = nil      -- 🆕 Lưu parts để debug
+local lastDeathPosition = nil
 
--- ========== HÀM QUÉT BODY PARTS ==========
 local function getAccuratePosition(character)
     if not character then return nil end
-    
     local totalPos = Vector3.zero
     local count = 0
     local lowestY = math.huge
-    
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
             if part.Name ~= "Handle" 
@@ -216,52 +53,38 @@ local function getAccuratePosition(character)
             end
         end
     end
-    
     if count == 0 then return nil end
-    
     local avgPos = totalPos / count
     local finalY = math.min(avgPos.Y, lowestY + 3)
-    
     return Vector3.new(avgPos.X, finalY, avgPos.Z)
 end
 
--- ========== PHẦN 1: LƯU VỊ TRÍ (CHỈ 1 HEARTBEAT, QUÉT 10Hz) ==========
 local lastScan = 0
 RunService.Heartbeat:Connect(function()
     if not Settings.KeepDeathPos then return end
     if Settings.FlingActive then return end
-    
-    -- ✅ Quét 10 lần/giây (tránh lag)
     local now = tick()
     if now - lastScan < 0.1 then return end
     lastScan = now
-    
     local c = player.Character
     if not c then return end
     local hum = c:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return end
-    
-    -- ✅ Quét body parts
     local pos = getAccuratePosition(c)
     if pos then
         lastDeathPosition = CFrame.new(pos)
     end
 end)
 
--- ========== PHẦN 2: XỬ LÝ KHI RESPAWN ==========
 player.CharacterAdded:Connect(function(newChar)
     local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
-    
     task.wait(0.3)
     
-    -- ✅ 2A: TELEPORT CHỐNG SERVER MẠNH
     if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
         local target = lastDeathPosition
         local startTime = tick()
-        local teleported = false
-        
         local conn
         conn = RunService.Heartbeat:Connect(function()
             local elapsed = tick() - startTime
@@ -269,19 +92,14 @@ player.CharacterAdded:Connect(function(newChar)
                 conn:Disconnect()
                 return
             end
-            
             if Settings.FlingActive then
                 conn:Disconnect()
                 return
             end
-            
-            -- ✅ GIAI ĐOẠN 1 (0-2s): Giữ vị trí liên tục — chống server đẩy
             if elapsed < 2 then
                 newRoot.CFrame = target
                 newRoot.AssemblyLinearVelocity = Vector3.zero
                 newRoot.AssemblyAngularVelocity = Vector3.zero
-                teleported = true
-            -- ✅ GIAI ĐOẠN 2 (2-4s): Chỉ kéo về nếu bị đẩy xa > 10 studs
             elseif elapsed < 4 then
                 local dist = (newRoot.Position - target.Position).Magnitude
                 if dist > 10 then
@@ -294,7 +112,6 @@ player.CharacterAdded:Connect(function(newChar)
         end)
     end
     
-    -- ✅ 2B: ANIMATION (chờ 2 frame để teleport chạy xong)
     task.spawn(function()
         local animator = newHum:FindFirstChildOfClass("Animator")
         if not animator then
@@ -304,41 +121,34 @@ player.CharacterAdded:Connect(function(newChar)
                 animator.Parent = newHum
             end
         end
-        
         RunService.Heartbeat:Wait()
         RunService.Heartbeat:Wait()
-        
         pcall(function()
             local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
                 animId = result[1].AnimationId
             end
-            
             local anim = Instance.new("Animation")
             anim.AnimationId = animId
-            
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action4
             track.Looped = false
             track:Play(0)
-            
             task.wait(SkipStart)
             if not track.IsPlaying then return end
-            
             track.TimePosition = SkipEnd
             task.wait(0.05)
-            
             local remaining = TotalDuration - SkipEnd
             task.wait(remaining)
-            
             if track.IsPlaying then
                 pcall(function() track:Stop(0.1) end)
             end
         end)
     end)
-end)    
--- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
+end)
+
+-- ========== ANIMATION HELPERS ==========
 local function getAnimator()
     if not hum then return nil end
     local a = hum:FindFirstChildOfClass("Animator")
@@ -375,7 +185,6 @@ local function LoadTrack(id)
     return track
 end
 
--- ✅ Sau đó mới đến StopTrack
 local function StopTrack()
     if CurrentTrack then
         pcall(function() CurrentTrack:Stop(0.1) end)
@@ -410,6 +219,7 @@ local function stopNoclipPlayer()
     end
 end
 
+-- ========== GUI ==========
 local sg = Instance.new("ScreenGui")
 sg.Name = "AnimGui"
 sg.ResetOnSpawn = false
@@ -589,7 +399,6 @@ local function createBtn(name, id)
     return b
 end
 
--- ✅ HÀM TẠO NÚT LOOP (animation chạy liên tục)
 local function createLoopBtn(name, id)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
@@ -680,9 +489,8 @@ local function createLoopBtn(name, id)
             
             if tr then
                 tr.Priority = Enum.AnimationPriority.Action4
-                tr.Looped = true  -- ✅ LOOP VÔ HẠN
+                tr.Looped = true
                 pcall(function() tr:Play(0.1, 1, Settings.Speed) end)
-                
                 CurrentTrack = tr
                 IsPlaying = true
                 ActiveButton = b
@@ -694,6 +502,10 @@ local function createLoopBtn(name, id)
     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
     return b
 end
+
+print("✅ PART 1 loaded")
+
+--[[ GUI ANIMATION - PART 2 ]]
 
 createBtn("Spin", 133180711707319)
 createBtn("Slap", 118273721275238)
@@ -719,7 +531,6 @@ createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
 createLoopBtn("Mm2", 133457275511275)
 createLoopBtn("Fling-punch", 118002791533481)
 
--- ✅ DANCE SYSTEM
 local danceBtns = {}
 
 local function createDanceBtn(name, id)
@@ -755,17 +566,14 @@ local function createDanceBtn(name, id)
             pcall(function() DanceTrack:Stop(0) end)
             DanceTrack = nil
         end
-
         pcall(function()
             local animator = getAnimator()
             if not animator then return end
-
             local animId = "rbxassetid://" .. tostring(id)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
                 animId = result[1].AnimationId
             end
-
             local anim = Instance.new("Animation")
             anim.AnimationId = animId
             DanceTrack = animator:LoadAnimation(anim)
@@ -779,12 +587,10 @@ local function createDanceBtn(name, id)
     return b
 end
 
--- 🆕 KHAI BÁO MẢNG TRƯỚC HÀM
-
 local function createkillBtn(name, id)
     local f = Instance.new("Frame")
     f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
-    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)  -- đổi màu đỏ cho kill
+    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     f.BorderSizePixel = 0
     f.Visible = false
     f.Parent = container
@@ -831,11 +637,10 @@ local function createkillBtn(name, id)
         end)
     end)
 
-    table.insert(killBtns, f)  -- ✅ SỬA: killBtns (không phải sitBtns)
+    table.insert(killBtns, f)
     return b
 end
 
--- ✅ THÊM 13 NÚT DANCE
 createDanceBtn("Gangnam Style", 129764254213842)
 createDanceBtn("Haha", 10714350889)
 createDanceBtn("Frosty Flair", 10214311282)
@@ -850,7 +655,6 @@ createDanceBtn("Bodybuilder", 10713990381)
 createDanceBtn("Name not found 2", 93014787120483)
 createDanceBtn("Name not found 3", 84769245763075)
 
--- 🆕 GỌI HÀM ĐỂ TẠO NÚT KILL (thay ID thật của bạn)
 createkillBtn("Knife Hold", 109192979353402)
 createkillBtn("Sword-Hold-Idle", 105788596267817)
 createkillBtn("REAPERS-SHOWTIME-DANCE", 90674844728471)
@@ -859,7 +663,6 @@ createkillBtn("Murderer-Knife-Hold", 109192979353402)
 createkillBtn("Slash", 82407225122935)
 
 local delFrame = Instance.new("Frame")
-
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
 delFrame.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -1034,281 +837,14 @@ makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
 
--- ✅ TOGGLE GIỮ VỊ TRÍ KHI HỒI SINH
 makeToggle("Giữ vị trí khi chết", function(a)
     Settings.KeepDeathPos = a
     if not a then
-        lastDeathPosition = nil   -- Reset khi tắt
+        lastDeathPosition = nil
     end
 end)
 
--- ✅ TOGGLE DANCE
 makeToggle("Dance", function(a)
     if a then
-        -- BẬT: Ẩn tất cả nhóm khác, chỉ hiện Dance
         for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = false
-            end
-        end
-        for _, f in pairs(killBtns) do          -- 👈 THÊM: ẩn Kill
-            if f and f.Parent then f.Visible = false end
-        end
-        for _, f in pairs(danceBtns) do
-            if f and f.Parent then f.Visible = true end
-        end
-    else
-        -- TẮT: Hiện lại animation, ẩn Dance
-        for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = true
-            end
-        end
-        for _, f in pairs(danceBtns) do
-            if f and f.Parent then f.Visible = false end
-        end
-        -- Dừng dance
-        if DanceTrack then
-            pcall(function() DanceTrack:Stop(0.1) end)
-            DanceTrack = nil
-        end
-    end
-end)
-
--- ✅ TOGGLE KILL
-makeToggle("Kill", function(a)
-    if a then
-        -- Ẩn nút animation + dance
-        for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = false
-            end
-        end
-        for _, f in pairs(danceBtns) do
-            if f and f.Parent then f.Visible = false end
-        end
-        -- Hiện nút kill
-        for _, f in pairs(killBtns) do
-            if f and f.Parent then f.Visible = true end
-        end
-    else
-        -- Hiện lại tất cả
-        for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = true
-            end
-        end
-        -- Ẩn kill
-        for _, f in pairs(killBtns) do
-            if f and f.Parent then f.Visible = false end
-        end
-        if DanceTrack then
-            pcall(function() DanceTrack:Stop(0.1) end)
-            DanceTrack = nil
-        end
-    end
-end)
-
-makeButton("Fling Touch", function(b)
-    b.Text = "Fling Touch OK"
-    task.wait(1)
-    b.Text = "Fling Touch"
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Touch%20fling"))()
-    end)
-end)
-
-local function makeScriptBtn(name, url)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 30)
-    b.BackgroundColor3 = Color3.fromRGB(50, 70, 150)
-    b.Text = name
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.Parent = pScroll
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet(url))()
-        end)
-        b.Text = name .. " OK"
-        task.wait(1)
-        b.Text = name
-    end)
-    return b
-end
-
-makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
-makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
-makeScriptBtn("TP Tool", "https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Tp%20tool")
-makeScriptBtn("Crawl", "https://raw.githubusercontent.com/0Ben1/fe/main/obf_vZDX8j5ggfAf58QhdJ59BVEmF6nmZgq4Mcjt2l8wn16CiStIW2P6EkNc605qv9K4.lua.txt")
-makeScriptBtn("Aqua Hub", "https://raw.githubusercontent.com/ExploitFin/AquaMatrix/refs/heads/AquaMatrix/AquaMatrix")
-
-local function makeSlider(name, min, max, def, cb)
-    local c2 = Instance.new("Frame")
-    c2.Size = UDim2.new(1, -10, 0, 42)
-    c2.BackgroundTransparency = 1
-    c2.Parent = pScroll
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 18)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = name .. ": " .. def
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 11
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = c2
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, 0, 0, 12)
-    bar.Position = UDim2.new(0, 0, 0, 24)
-    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    bar.Parent = c2
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
-
-    local rel0 = (def - min) / (max - min)
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(rel0, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(100, 130, 255)
-    fill.Parent = bar
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
-
-    local th = Instance.new("Frame")
-    th.Size = UDim2.new(0, 14, 0, 14)
-    th.AnchorPoint = Vector2.new(0.5, 0.5)
-    th.Position = UDim2.new(rel0, 0, 0.5, 0)
-    th.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-    th.Parent = bar
-    Instance.new("UICorner", th).CornerRadius = UDim.new(1, 0)
-
-    local drag = false
-    local function set(v)
-        v = math.clamp(v, min, max)
-        lbl.Text = name .. ": " .. math.floor(v)
-        local r = (v - min) / (max - min)
-        fill.Size = UDim2.new(r, 0, 1, 0)
-        th.Position = UDim2.new(r, 0, 0.5, 0)
-        cb(v)
-    end
-    local function upd(i)
-        local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-        set(min + (max - min) * r)
-    end
-    bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            drag = true
-            upd(i)
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            upd(i)
-        end
-    end)
-    UIS.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            drag = false
-        end
-    end)
-end
-
-makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
-    Settings.Speed = v
-    if CurrentTrack and CurrentTrack.IsPlaying then
-        pcall(function() CurrentTrack:AdjustSpeed(v) end)
-    end
-end)
-
-makeSlider("Tốc chạy", 1, 100, 16, function(v)
-    Settings.WalkSpeed = math.floor(v)
-    if hum then hum.WalkSpeed = math.floor(v) end
-end)
-
-makeSlider("Size", 1, 13, 7, function(v)
-    local size = math.floor(v)
-    Settings.BtnSize = size
-    for _, ref in pairs(allBtns) do
-        if ref and ref.frame and ref.frame.Parent then
-            ref.frame.Size = UDim2.new(1, 0, 0, size * 2.8)
-            if ref.btn then
-                ref.btn.TextSize = math.max(8, size)
-            end
-        end
-    end
-    task.wait(0.1)
-    updateContainerSize()
-end)
-
-local sFrame = Instance.new("Frame")
-sFrame.Size = UDim2.new(0, 32, 0, 32)
-sFrame.Position = UDim2.new(1, -45, 0, 15)
-sFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-sFrame.BorderSizePixel = 0
-sFrame.Active = true
-sFrame.Parent = sg
-Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
-
-local sBtn = Instance.new("TextButton")
-sBtn.Size = UDim2.new(1, 0, 1, 0)
-sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-sBtn.Text = "S"
-sBtn.TextColor3 = Color3.new(1, 1, 1)
-sBtn.Font = Enum.Font.GothamBold
-sBtn.TextSize = 16
-sBtn.AutoButtonColor = false
-sBtn.BorderSizePixel = 0
-sBtn.Parent = sFrame
-Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
-
--- ✅ DRAG
-local sDrag = false
-local sDragStart, sDragPos
-local sMoved = false
-
-sBtn.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        sDrag = true
-        sMoved = false
-        sDragStart = i.Position
-        sDragPos = sFrame.Position
-    end
-end)
-
-UIS.InputChanged:Connect(function(i)
-    if not sDrag then return end
-    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-        local delta = i.Position - sDragStart
-        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
-            sMoved = true
-        end
-        if sMoved then
-            sFrame.Position = UDim2.new(
-                sDragPos.X.Scale, sDragPos.X.Offset + delta.X,
-                sDragPos.Y.Scale, sDragPos.Y.Offset + delta.Y
-            )
-        end
-    end
-end)
-
-UIS.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        sDrag = false
-    end
-end)
-
--- ✅ CLICK MỞ PANEL (thêm đoạn này!)
-sBtn.MouseButton1Click:Connect(function()
-    if sMoved then return end
-    panel.Visible = not panel.Visible
-end)
-
-sBtn.MouseEnter:Connect(function()
-    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
-end)
-sBtn.MouseLeave:Connect(function()
-    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
-end)
+            if ref
