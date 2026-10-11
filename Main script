@@ -60,8 +60,8 @@ end)
 -- ✅ CẮT ĐOẠN GIỮA CỦA 1 ANIMATION
 local RespawnAnimID = 119026808107564 -- ← ID animation của bạn
 local SkipStart = 4      -- ← Bắt đầu bỏ từ giây thứ mấy
-local SkipEnd = 7        -- ← Kết thúc bỏ tại giây thứ mấy
-local TotalDuration = 9  -- ← Tổng thời gian animation
+local SkipEnd = 11        -- ← Kết thúc bỏ tại giây thứ mấy
+local TotalDuration = 15  -- ← Tổng thời gian animation
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
