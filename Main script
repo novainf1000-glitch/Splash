@@ -63,46 +63,94 @@ player.CharacterAdded:Connect(function(newChar)
             RunService.Heartbeat:Wait()
         end
     end
+     
+player.CharacterAdded:Connect(function(newChar)
+    print("🔥 CharacterAdded fire")
     
-    -- BƯỚC 2: Đợi ổn định rồi chạy animation
+    local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
+    local newHum = newChar:WaitForChild("Humanoid", 10)
+    if not newRoot or not newHum then
+        print("❌ Không có root/hum")
+        return
+    end
+    print("✅ Có root + hum")
+    
+    -- TELEPORT
+    if lastDeathPosition then
+        local target = lastDeathPosition
+        local startTime = tick()
+        while tick() - startTime < 1.5 do
+            if newRoot.Parent then
+                newRoot.CFrame = target
+                newRoot.AssemblyLinearVelocity = Vector3.zero
+            end
+            RunService.Heartbeat:Wait()
+        end
+        print("✅ Teleport xong")
+    end
+    
     task.wait(0.5)
     
     task.spawn(function()
-        print("▶️ Bắt đầu animation respawn")
+        print("▶️ Bắt đầu animation")
+        
+        -- Chờ Animator tối đa 4 giây
         local a = newHum:FindFirstChildOfClass("Animator")
         if not a then
-            print("⚠️ Không có Animator, đang chờ...")
-            a = newHum:WaitForChild("Animator", 3)
+            print("⚠️ Chưa có Animator, chờ...")
+            for i = 1, 20 do
+                task.wait(0.2)
+                a = newHum:FindFirstChildOfClass("Animator")
+                if a then print("✅ Animator xuất hiện sau", i * 0.2, "giây") break end
+            end
         end
-        if not a then
-            print("❌ Animator load thất bại")
-            return
-        end
-        print("✅ Có Animator")
         
-        pcall(function()
+        if not a then
+            print("❌ Animator fail sau 4s")
+            -- Tạo thủ công
+            a = Instance.new("Animator")
+            a.Parent = newHum
+            print("✅ Tạo Animator thủ công")
+        end
+        
+        print("✅ Có Animator")
+        task.wait(0.3)
+        
+        local success, err = pcall(function()
             local anim = Instance.new("Animation")
             anim.AnimationId = "rbxassetid://" .. tostring(RespawnAnimID)
+            
             local t = a:LoadAnimation(anim)
-            print("✅ Load animation:", t)
-            print("   Animation ID:", anim.AnimationId)
+            print("✅ Load animation OK")
+            print("   ID:", anim.AnimationId)
+            print("   Length:", t.Length)
+            
             t.Priority = Enum.AnimationPriority.Action4
             t.Looped = false
             t:Play(0)
-            print("✅ Đang chạy. Length:", t.Length)
+            print("✅ Đã Play. IsPlaying:", t.IsPlaying)
+            
             task.wait(SkipStart)
+            print("⏱️ Sau SkipStart. IsPlaying:", t.IsPlaying)
             if not t.IsPlaying then
                 print("❌ Track đã dừng sau", SkipStart, "giây")
                 return
             end
+            
             t.TimePosition = SkipEnd
+            print("⏭️ Nhảy tới", SkipEnd)
             task.wait(0.05)
             task.wait(TotalDuration - SkipEnd)
+            
             if t.IsPlaying then pcall(function() t:Stop(0.1) end) end
             print("✅ Animation kết thúc")
         end)
+        
+        if not success then
+            print("❌ LỖI trong pcall:", err)
+        end
     end)
-end)   -- 👈 DẤU NÀY BẠN THIẾU
+end)
 
 -- ========== ANIMATION HELPERS ==========
 local function getAnimator()
