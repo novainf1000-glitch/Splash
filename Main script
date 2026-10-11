@@ -516,12 +516,7 @@ local function createDanceBtn(name, id)
     return b
 end
 
-    table.insert(danceBtns, f)
-    return b
-end
-
 -- 🆕 KHAI BÁO MẢNG TRƯỚC HÀM
-local killBtns = {}
 
 local function createkillBtn(name, id)
     local f = Instance.new("Frame")
@@ -986,10 +981,23 @@ sFrame.Active = true
 sFrame.Parent = sg
 Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
 
--- ✅ DRAG NÚT S
+-- ✅ TẠO sBtn TRƯỚC
+local sBtn = Instance.new("TextButton")
+sBtn.Size = UDim2.new(1, 0, 1, 0)
+sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+sBtn.Text = "S"
+sBtn.TextColor3 = Color3.new(1, 1, 1)
+sBtn.Font = Enum.Font.GothamBold
+sBtn.TextSize = 16
+sBtn.AutoButtonColor = false
+sBtn.BorderSizePixel = 0
+sBtn.Parent = sFrame
+Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
+
+-- ✅ DRAG NÚT S (đặt sau khi sBtn đã tạo)
 local sDrag = false
 local sDragStart, sDragPos
-local sMoved = false  -- phân biệt click vs drag
+local sMoved = false
 
 sFrame.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -1004,7 +1012,6 @@ UIS.InputChanged:Connect(function(i)
     if not sDrag then return end
     if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
         local delta = i.Position - sDragStart
-        -- Nếu di chuyển > 5 pixel thì coi là drag
         if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
             sMoved = true
         end
@@ -1023,23 +1030,11 @@ UIS.InputEnded:Connect(function(i)
     end
 end)
 
--- ✅ SỬA CLICK: chỉ mở panel khi KHÔNG drag
+-- ✅ CLICK (đặt SAU khi sBtn đã tạo)
 sBtn.MouseButton1Click:Connect(function()
-    if sMoved then return end  -- nếu vừa drag thì không mở panel
+    if sMoved then return end
     panel.Visible = not panel.Visible
 end)
-
-local sBtn = Instance.new("TextButton")
-sBtn.Size = UDim2.new(1, 0, 1, 0)
-sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
-sBtn.Text = "S"
-sBtn.TextColor3 = Color3.new(1, 1, 1)
-sBtn.Font = Enum.Font.GothamBold
-sBtn.TextSize = 16
-sBtn.AutoButtonColor = false
-sBtn.BorderSizePixel = 0
-sBtn.Parent = sFrame
-Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
 
 sBtn.MouseEnter:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
@@ -1047,3 +1042,5 @@ end)
 sBtn.MouseLeave:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
 end)
+
+
