@@ -86,22 +86,63 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ✅ RESPAWN: GIỮ VỊ TRÍ + CẮT ANIMATION
-local RespawnAnimID =  119026808107564  -- ID animation
-local SkipStart = 4                    -- Chạy 0 → 4s
-local SkipEnd = 9.8                     -- Nhảy cóc tới giây 15
-local TotalDuration = 10.8               -- Animation dài 18s → chạy 15 → 18
-local lastDeathPosition = nil
+-- ✅ RESPAWN: QUÉT BODY + CẮT ANIMATION
+local RespawnAnimID = 119026808107564
+local SkipStart = 4
+local SkipEnd = 9.8
+local TotalDuration = 10.8
+local lastDeathPosition = nil   -- ✅ CHỈ KHAI BÁO 1 LẦN
+local lastDeathVelocity = nil
 
--- ========== PHẦN 1: LƯU VỊ TRÍ LIÊN TỤC ==========
+-- ========== HÀM QUÉT BODY PARTS ==========
+local function getAccuratePosition(character)
+    if not character then return nil end
+    
+    local totalPos = Vector3.zero
+    local count = 0
+    local lowestY = math.huge
+    
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            if part.Name ~= "Handle" 
+                and not part.Name:match("Accessory")
+                and not part.Name:match("Hat")
+                and not part.Name:match("Hair") then
+                totalPos = totalPos + part.Position
+                count = count + 1
+                if part.Position.Y < lowestY then
+                    lowestY = part.Position.Y
+                end
+            end
+        end
+    end
+    
+    if count == 0 then return nil end
+    
+    local avgPos = totalPos / count
+    local finalY = math.min(avgPos.Y, lowestY + 3)
+    
+    return Vector3.new(avgPos.X, finalY, avgPos.Z)
+end
+
+-- ========== PHẦN 1: LƯU VỊ TRÍ (CHỈ 1 HEARTBEAT) ==========
 RunService.Heartbeat:Connect(function()
     if not Settings.KeepDeathPos then return end
+    if Settings.FlingActive then return end
     local c = player.Character
     if not c then return end
-    local root = c:FindFirstChild("HumanoidRootPart")
     local hum = c:FindFirstChildOfClass("Humanoid")
-    if root and hum and hum.Health > 0 then
-        lastDeathPosition = root.CFrame
+    if not hum or hum.Health <= 0 then return end
+    
+    -- ✅ Dùng quét body parts
+    local pos = getAccuratePosition(c)
+    if pos then
+        lastDeathPosition = CFrame.new(pos)
+        
+        local root = c:FindFirstChild("HumanoidRootPart")
+        if root then
+            lastDeathVelocity = root.AssemblyLinearVelocity
+        end
     end
 end)
 
@@ -113,91 +154,90 @@ player.CharacterAdded:Connect(function(newChar)
     
     task.wait(0.3)
     
-    -- ✅ TELEPORT 1 LẦN + chỉ giữ nếu bị server đẩy
-if Settings.KeepDeathPos and lastDeathPosition then
-    local target = lastDeathPosition
-    local startTime = tick()
-    local teleported = false
-    local lastPos = nil
-    
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        local elapsed = tick() - startTime
-        if not newRoot or not newRoot.Parent then
-            conn:Disconnect()
-            return
-        end
+    -- ✅ 2A: TELEPORT 1 LẦN
+    if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
+        local target = lastDeathPosition
+        local startTime = tick()
+        local teleported = false
+        local lastPos = nil
         
-        -- ✅ Teleport 1 lần duy nhất lúc đầu
-        if not teleported then
-            newRoot.CFrame = target
-            newRoot.AssemblyLinearVelocity = Vector3.zero
-            newRoot.AssemblyAngularVelocity = Vector3.zero
-            teleported = true
-            lastPos = target.Position
-        end
-        
-        -- ✅ Trong 1.5s đầu: chỉ kéo về nếu server đẩy ĐỘT NGỘT
-        -- (không kéo nếu người chơi tự di chuyển)
-        if elapsed < 1.5 then
-            local currentPos = newRoot.Position
-            local expectedDist = (currentPos - lastPos).Magnitude
+        local conn
+        conn = RunService.Heartbeat:Connect(function()
+            local elapsed = tick() - startTime
+            if not newRoot or not newRoot.Parent then
+                conn:Disconnect()
+                return
+            end
             
-            -- Nếu bị đẩy > 15 studs trong 1 frame → server teleport
-            if expectedDist > 15 then
+            if Settings.FlingActive then
+                conn:Disconnect()
+                return
+            end
+            
+            if not teleported then
                 newRoot.CFrame = target
                 newRoot.AssemblyLinearVelocity = Vector3.zero
+                newRoot.AssemblyAngularVelocity = Vector3.zero
+                teleported = true
                 lastPos = target.Position
-            else
-                lastPos = currentPos   -- cho phép di chuyển
             end
-        else
-            conn:Disconnect()
-        end
-    end)
-end
-    
-task.spawn(function()
-    local animator = newHum:FindFirstChildOfClass("Animator")
-    if not animator then
-        animator = newHum:WaitForChild("Animator", 2)
-        if not animator then
-            animator = Instance.new("Animator")
-            animator.Parent = newHum
-        end
+            
+            if elapsed < 1.5 then
+                local currentPos = newRoot.Position
+                local expectedDist = (currentPos - lastPos).Magnitude
+                
+                if expectedDist > 15 then
+                    newRoot.CFrame = target
+                    newRoot.AssemblyLinearVelocity = Vector3.zero
+                    lastPos = target.Position
+                else
+                    lastPos = currentPos
+                end
+            else
+                conn:Disconnect()
+            end
+        end)
     end
     
-    -- ✅ CHỜ 1 FRAME (0.016s) — đủ để teleport chạy
-    RunService.Heartbeat:Wait()
-    
-    pcall(function()
-        local animId = "rbxassetid://" .. tostring(RespawnAnimID)
-        local ok, result = pcall(function() return game:GetObjects(animId) end)
-        if ok and result and #result > 0 and result[1]:IsA("Animation") then
-            animId = result[1].AnimationId
+    -- ✅ 2B: ANIMATION
+    task.spawn(function()
+        local animator = newHum:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = newHum:WaitForChild("Animator", 2)
+            if not animator then
+                animator = Instance.new("Animator")
+                animator.Parent = newHum
+            end
         end
         
-        local anim = Instance.new("Animation")
-        anim.AnimationId = animId
+        -- ✅ Chờ 2 frame (đủ để teleport chạy)
+        RunService.Heartbeat:Wait()
+        RunService.Heartbeat:Wait()
         
-        local track = animator:LoadAnimation(anim)
-        track.Priority = Enum.AnimationPriority.Action4
-        track.Looped = false
-        track:Play(0)
+        pcall(function()
+            local animId = "rbxassetid://" .. tostring(RespawnAnimID)
+            local ok, result = pcall(function() return game:GetObjects(animId) end)
+            if ok and result and #result > 0 and result[1]:IsA("Animation") then
+                animId = result[1].AnimationId
+            end
             
-            -- ✅ GIAI ĐOẠN 1: Chạy 0 → SkipStart (4s)
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            
+            local track = animator:LoadAnimation(anim)
+            track.Priority = Enum.AnimationPriority.Action4
+            track.Looped = false
+            track:Play(0)
+            
             task.wait(SkipStart)
             if not track.IsPlaying then return end
             
-            -- ✅ NHẢY CÓC: nhảy tới giây SkipEnd (15s)
             track.TimePosition = SkipEnd
-            task.wait()   -- chờ 1 frame để update
+            task.wait(0.05)   -- ✅ Chờ 0.05s thay vì task.wait()
             
-            -- ✅ GIAI ĐOẠN 2: Chạy SkipEnd → TotalDuration (15 → 18 = 3s)
             local remaining = TotalDuration - SkipEnd
             task.wait(remaining)
             
-            -- Dừng
             if track.IsPlaying then
                 pcall(function() track:Stop(0.1) end)
             end
