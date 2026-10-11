@@ -61,7 +61,7 @@ end)
 local RespawnAnimID = 119026808107564 -- ← ID animation của bạn
 local SkipStart = 4      -- ← Bắt đầu bỏ từ giây thứ mấy
 local SkipEnd = 11        -- ← Kết thúc bỏ tại giây thứ mấy
-local TotalDuration = 15  -- ← Tổng thời gian animation
+local TotalDuration = 13  -- ← Tổng thời gian animation
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
@@ -101,11 +101,11 @@ local function setupRespawnCut()
             
             if not track.IsPlaying then return end
             
-            -- ✅ NHẢY CÓC: Set TimePosition = 7 (bỏ qua 4→7)
+            -- ✅ NHẢY CÓC: Set TimePosition = 11 (bỏ qua 4→11)
             track.TimePosition = SkipEnd
             
             -- ✅ GIAI ĐOẠN 2: Chạy tiếp từ 7s → 9s
-            local remaining = TotalDuration - SkipEnd   -- = 9 - 7 = 2s
+            local remaining = TotalDuration - SkipEnd   -- = 13 - 11 = 5s
             task.wait(remaining)
             
             if track.IsPlaying then
