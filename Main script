@@ -49,7 +49,7 @@ player.CharacterAdded:Connect(function(newChar)
         local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
         if newRoot then
             -- Chống server teleport: giữ vị trí trong 2 giây
-            local target = lastDeathPosition + Vector3.new(0, 3, 0)
+            local target = lastDeathPosition + Vector3.new(0, 0, 0)
             local startTime = tick()
             
             local conn
