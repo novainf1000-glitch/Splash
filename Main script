@@ -981,7 +981,6 @@ sFrame.Active = true
 sFrame.Parent = sg
 Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
 
--- ✅ TẠO sBtn TRƯỚC
 local sBtn = Instance.new("TextButton")
 sBtn.Size = UDim2.new(1, 0, 1, 0)
 sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -994,12 +993,12 @@ sBtn.BorderSizePixel = 0
 sBtn.Parent = sFrame
 Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
 
--- ✅ DRAG NÚT S (đặt sau khi sBtn đã tạo)
+-- ✅ DRAG
 local sDrag = false
 local sDragStart, sDragPos
 local sMoved = false
 
-sBtn.InputBegan:Connect(function(i)     -- 👈 ĐỔI sFrame → sBtn
+sBtn.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         sDrag = true
         sMoved = false
@@ -1028,4 +1027,17 @@ UIS.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         sDrag = false
     end
+end)
+
+-- ✅ CLICK MỞ PANEL (thêm đoạn này!)
+sBtn.MouseButton1Click:Connect(function()
+    if sMoved then return end
+    panel.Visible = not panel.Visible
+end)
+
+sBtn.MouseEnter:Connect(function()
+    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+end)
+sBtn.MouseLeave:Connect(function()
+    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
 end)
