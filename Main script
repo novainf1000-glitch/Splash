@@ -111,7 +111,7 @@ player.CharacterAdded:Connect(function(newChar)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
     
-    task.wait(0)
+    task.wait(0.3)
     
     -- ✅ TELEPORT 1 LẦN + chỉ giữ nếu bị server đẩy
 if Settings.KeepDeathPos and lastDeathPosition then
@@ -168,7 +168,7 @@ end
             end
         end
         
-        task.wait(0)
+        task.wait(0.0001)
         
         pcall(function()
             -- Load animation
