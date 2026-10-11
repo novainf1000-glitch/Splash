@@ -26,47 +26,62 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
--- ✅ GIỮ VỊ TRÍ VỪA CHẾT (bù trừ server)
+-- ✅ LƯU VỊ TRÍ CHÍNH XÁC TỪ NHIỀU BODY PARTS
 local lastDeathPosition = nil
+local lastDeathVelocity = nil
 
-RunService.Heartbeat:Connect(function()
-    if not Settings.KeepDeathPos then return end
-    local c = player.Character
-    if not c then return end
-    local root = c:FindFirstChild("HumanoidRootPart")
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    if root and hum and hum.Health > 0 then
-        -- Chỉ lưu khi nhân vật ĐỨNG YÊN (không rơi)
-        local vel = root.AssemblyLinearVelocity
-        if vel.Magnitude < 5 then   -- 👈 Chỉ lưu khi gần như đứng yên
-            lastDeathPosition = root.CFrame
+-- Hàm quét tất cả parts và tính vị trí trung bình
+local function getAccuratePosition(character)
+    if not character then return nil end
+    
+    local parts = {}
+    local totalPos = Vector3.zero
+    local count = 0
+    local lowestY = math.huge
+    
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            -- Bỏ qua part không quan trọng
+            if part.Name ~= "Handle" and not part.Name:match("Accessory") then
+                table.insert(parts, part)
+                totalPos = totalPos + part.Position
+                count = count + 1
+                if part.Position.Y < lowestY then
+                    lowestY = part.Position.Y
+                end
+            end
         end
     end
-end)
-
-player.CharacterAdded:Connect(function(newChar)
-    task.wait(0.1)
     
-    if Settings.KeepDeathPos and lastDeathPosition then
-        local newRoot = newChar:WaitForChild("HumanoidRootPart", 5)
-        if newRoot then
-            -- ✅ SỬA: bỏ offset
-            local target = lastDeathPosition
-            local startTime = tick()
-            
-            local conn
-            conn = RunService.Heartbeat:Connect(function()
-                if tick() - startTime > 3 then
-                    conn:Disconnect()
-                    return
-                end
-                if newRoot and newRoot.Parent then
-                    newRoot.CFrame = target
-                    newRoot.AssemblyLinearVelocity = Vector3.zero   -- 👈 chặn rơi
-                else
-                    conn:Disconnect()
-                end
-            end)
+    if count == 0 then return nil end
+    
+    -- Trung bình cộng tất cả parts
+    local avgPos = totalPos / count
+    
+    -- Ưu tiên vị trí thấp nhất (chỗ chạm đất)
+    local finalY = math.min(avgPos.Y, lowestY + 3)
+    
+    return Vector3.new(avgPos.X, finalY, avgPos.Z), parts
+end
+
+-- Lưu liên tục khi sống
+RunService.Heartbeat:Connect(function()
+    if not Settings.KeepDeathPos then return end
+    if Settings.FlingActive then return end
+    local c = player.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    
+    -- ✅ Lấy vị trí chính xác từ nhiều parts
+    local pos = getAccuratePosition(c)
+    if pos then
+        lastDeathPosition = CFrame.new(pos)
+        
+        -- Lưu velocity để biết hướng chết
+        local root = c:FindFirstChild("HumanoidRootPart")
+        if root then
+            lastDeathVelocity = root.AssemblyLinearVelocity
         end
     end
 end)
