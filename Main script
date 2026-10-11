@@ -57,12 +57,11 @@ player.CharacterAdded:Connect(function(newChar)
     trackDeathPosition(newChar)
 end)
 
+-- ✅ RESPAWN ANIMATION — Nhảy cóc
 local RespawnAnimID = 119026808107564
-local SkipStart = 4          -- Bỏ từ 4s
-local SkipEnd = 10            -- Chạy tiếp từ 7s
-local TotalDuration = 16      -- Animation thật dài 9s
-local SlowSpeed = 0.5        -- ✅ Tốc độ đoạn cuối (0.5 = chậm 50%)
-local HoldTime = 5           -- ✅ Đứng yên thêm 3s sau khi hết (0 = không giữ)
+local SkipStart = 4        -- Chạy 0 → 4s
+local SkipEnd = 15         -- Nhảy cóc tới giây 15
+local TotalDuration = 18   -- Animation dài 18s → chạy 15 → 18
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
@@ -96,29 +95,19 @@ local function setupRespawnCut()
             track.Looped = false
             track:Play(0)
             
-            -- GIAI ĐOẠN 1: Chạy 0 → SkipStart
+            -- GIAI ĐOẠN 1: Chạy 0 → SkipStart (4s)
             task.wait(SkipStart)
             if not track.IsPlaying then return end
             
-            -- NHẢY CÓC
+            -- NHẢY CÓC: Set thời điểm = SkipEnd (15s)
             track.TimePosition = SkipEnd
             
-            -- ✅ GIAI ĐOẠN 2: Chạy chậm hơn
-            if SlowSpeed ~= 1 then
-                track:AdjustSpeed(SlowSpeed)
-            end
-            
-            -- Tính thời gian đoạn cuối (đã tính tốc độ chậm)
-            local realTime = (TotalDuration - SkipEnd) / SlowSpeed
-            task.wait(realTime)
-            
-            -- ✅ GIỮ NGUYÊN POSE CUỐI trong HoldTime giây
-            if HoldTime > 3 then
-                task.wait(HoldTime)
-            end
+            -- GIAI ĐOẠN 2: Chạy 15 → 18s (3s)
+            local remaining = TotalDuration - SkipEnd   -- = 18 - 15 = 3s
+            task.wait(remaining)
             
             if track.IsPlaying then
-                pcall(function() track:Stop(1) end)
+                pcall(function() track:Stop(0.1) end)
             end
         end)
     end
