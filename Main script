@@ -226,6 +226,7 @@ end)
 
 local allBtns = {}
 local markedBtns = {}
+local killBtns = {}
 
 local function createBtn(name, id)
     local f = Instance.new("Frame")
@@ -442,7 +443,6 @@ createBtn("MMA kick", 112687071860501)
 createBtn("Đá phản lực", 98481111917153)
 createBtn("Đá x3", 107652660092239)
 createBtn("Cú móc", 96853318026158)
-createBtn("Slash", 82407225122935)
 createBtn("Best Dropkick", 120732463359559)
 createBtn("Bad Dropkick", 71324709061585)
 createBtn("Push", 93336754523717)
@@ -455,11 +455,6 @@ createBtn("Mesmer-Spin", 71679338021372)
 createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
 createLoopBtn("Mm2", 133457275511275)
 createLoopBtn("Fling-punch", 118002791533481)
-createLoopBtn("Knife Hold", 109192979353402)
-createLoopBtn("Sword-Hold-Idle", 105788596267817)
-createLoopBtn("REAPERS-SHOWTIME-DANCE", 90674844728471)
-createLoopBtn("R15-Glow-Motion-Idle", 133119653762400)
-createLoopBtn("Murderer-Knife-Hold", 109192979353402)
 
 -- ✅ DANCE SYSTEM
 local danceBtns = {}
@@ -521,6 +516,67 @@ local function createDanceBtn(name, id)
     return b
 end
 
+    table.insert(danceBtns, f)
+    return b
+end
+
+-- 🆕 KHAI BÁO MẢNG TRƯỚC HÀM
+local killBtns = {}
+
+local function createkillBtn(name, id)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, Settings.BtnSize * 2.8)
+    f.BackgroundColor3 = Color3.fromRGB(40, 20, 20)  -- đổi màu đỏ cho kill
+    f.BorderSizePixel = 0
+    f.Visible = false
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = math.max(8, Settings.BtnSize)
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = f
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+
+    b.MouseEnter:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    end)
+    b.MouseLeave:Connect(function()
+        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+    end)
+
+    b.MouseButton1Click:Connect(function()
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0) end)
+            DanceTrack = nil
+        end
+        pcall(function()
+            local animator = getAnimator()
+            if not animator then return end
+            local animId = "rbxassetid://" .. tostring(id)
+            local ok, result = pcall(function() return game:GetObjects(animId) end)
+            if ok and result and #result > 0 and result[1]:IsA("Animation") then
+                animId = result[1].AnimationId
+            end
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            DanceTrack = animator:LoadAnimation(anim)
+            DanceTrack.Priority = Enum.AnimationPriority.Action4
+            DanceTrack.Looped = true
+            DanceTrack:Play(0.1)
+        end)
+    end)
+
+    table.insert(killBtns, f)  -- ✅ SỬA: killBtns (không phải sitBtns)
+    return b
+end
+
 -- ✅ THÊM 13 NÚT DANCE
 createDanceBtn("Gangnam Style", 129764254213842)
 createDanceBtn("Haha", 10714350889)
@@ -535,7 +591,17 @@ createDanceBtn("Epic Dance", 139130639469681)
 createDanceBtn("Bodybuilder", 10713990381)
 createDanceBtn("Name not found 2", 93014787120483)
 createDanceBtn("Name not found 3", 84769245763075)
+
+-- 🆕 GỌI HÀM ĐỂ TẠO NÚT KILL (thay ID thật của bạn)
+createkillBtn("Knife Hold", 109192979353402)
+createkillBtn("Sword-Hold-Idle", 105788596267817)
+createkillBtn("REAPERS-SHOWTIME-DANCE", 90674844728471)
+createkillBtn("R15-Glow-Motion-Idle", 133119653762400)
+createkillBtn("Murderer-Knife-Hold", 109192979353402)
+createkillBtn("Slash", 82407225122935)
+
 local delFrame = Instance.new("Frame")
+
 delFrame.Size = UDim2.new(0, 40, 0, 40)
 delFrame.Position = UDim2.new(1, -55, 1, -60)
 delFrame.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
@@ -709,36 +775,67 @@ end)
 makeToggle("Noclip Player", function(a)
     if a then startNoclipPlayer() else stopNoclipPlayer() end
 end)
+
 -- ✅ TOGGLE DANCE
 makeToggle("Dance", function(a)
     if a then
-        -- BẬT: Ẩn nút animation + HIỆN nút Dance
+        -- BẬT: Ẩn tất cả nhóm khác, chỉ hiện Dance
         for _, ref in pairs(allBtns) do
             if ref and ref.frame and ref.frame.Parent then
                 ref.frame.Visible = false
             end
         end
-
+        for _, f in pairs(killBtns) do          -- 👈 THÊM: ẩn Kill
+            if f and f.Parent then f.Visible = false end
+        end
         for _, f in pairs(danceBtns) do
-            if f and f.Parent then
-                f.Visible = true
-            end
+            if f and f.Parent then f.Visible = true end
         end
     else
-        -- TẮT: Hiện nút animation + Ẩn nút Dance
+        -- TẮT: Hiện lại animation, ẩn Dance
         for _, ref in pairs(allBtns) do
             if ref and ref.frame and ref.frame.Parent then
                 ref.frame.Visible = true
             end
         end
-
         for _, f in pairs(danceBtns) do
-            if f and f.Parent then
-                f.Visible = false
+            if f and f.Parent then f.Visible = false end
+        end
+        -- Dừng dance
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0.1) end)
+            DanceTrack = nil
+        end
+    end
+end)
+
+-- ✅ TOGGLE KILL
+makeToggle("Kill", function(a)
+    if a then
+        -- Ẩn nút animation + dance
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = false
             end
         end
-
-        -- Dừng dance
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
+        -- Hiện nút kill
+        for _, f in pairs(killBtns) do
+            if f and f.Parent then f.Visible = true end
+        end
+    else
+        -- Hiện lại tất cả
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = true
+            end
+        end
+        -- Ẩn kill
+        for _, f in pairs(killBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
         if DanceTrack then
             pcall(function() DanceTrack:Stop(0.1) end)
             DanceTrack = nil
@@ -889,6 +986,49 @@ sFrame.Active = true
 sFrame.Parent = sg
 Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
 
+-- ✅ DRAG NÚT S
+local sDrag = false
+local sDragStart, sDragPos
+local sMoved = false  -- phân biệt click vs drag
+
+sFrame.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        sDrag = true
+        sMoved = false
+        sDragStart = i.Position
+        sDragPos = sFrame.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(i)
+    if not sDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local delta = i.Position - sDragStart
+        -- Nếu di chuyển > 5 pixel thì coi là drag
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            sMoved = true
+        end
+        if sMoved then
+            sFrame.Position = UDim2.new(
+                sDragPos.X.Scale, sDragPos.X.Offset + delta.X,
+                sDragPos.Y.Scale, sDragPos.Y.Offset + delta.Y
+            )
+        end
+    end
+end)
+
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        sDrag = false
+    end
+end)
+
+-- ✅ SỬA CLICK: chỉ mở panel khi KHÔNG drag
+sBtn.MouseButton1Click:Connect(function()
+    if sMoved then return end  -- nếu vừa drag thì không mở panel
+    panel.Visible = not panel.Visible
+end)
+
 local sBtn = Instance.new("TextButton")
 sBtn.Size = UDim2.new(1, 0, 1, 0)
 sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -900,10 +1040,6 @@ sBtn.AutoButtonColor = false
 sBtn.BorderSizePixel = 0
 sBtn.Parent = sFrame
 Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
-
-sBtn.MouseButton1Click:Connect(function()
-    panel.Visible = not panel.Visible
-end)
 
 sBtn.MouseEnter:Connect(function()
     TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
