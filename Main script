@@ -75,7 +75,7 @@ end)
 local RespawnAnimID =  119026808107564  -- ID animation
 local SkipStart = 4                    -- Chạy 0 → 4s
 local SkipEnd = 9.8                     -- Nhảy cóc tới giây 15
-local TotalDuration = 11               -- Animation dài 18s → chạy 15 → 18
+local TotalDuration = 10.8               -- Animation dài 18s → chạy 15 → 18
 local lastDeathPosition = nil
 
 -- ========== PHẦN 1: LƯU VỊ TRÍ LIÊN TỤC ==========
