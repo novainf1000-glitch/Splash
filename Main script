@@ -27,110 +27,116 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
--- ✅ GIỮ VỊ TRÍ KHI CHẾT + ANIMATION RESPAWN
+-- ✅ RESPAWN: GIỮ VỊ TRÍ + CẮT ANIMATION (bản cũ 10/10)
 local RespawnAnimID = 119026808107564
 local SkipStart = 4
 local SkipEnd = 9.8
 local TotalDuration = 10.8
 local lastDeathPosition = nil
 
+-- ========== PHẦN 1: LƯU VỊ TRÍ (dùng root part, đơn giản) ==========
 RunService.Heartbeat:Connect(function()
     if not Settings.KeepDeathPos then return end
-    if Settings.FlingActive then return end
     local c = player.Character
     if not c then return end
     local root = c:FindFirstChild("HumanoidRootPart")
-    local h = c:FindFirstChildOfClass("Humanoid")
-    if root and h and h.Health > 0 then
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if root and hum and hum.Health > 0 then
         lastDeathPosition = root.CFrame
     end
 end)
-  
+
+-- ========== PHẦN 2: XỬ LÝ KHI RESPAWN ==========
 player.CharacterAdded:Connect(function(newChar)
-    print("🔥 CharacterAdded fire")
-    
     local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
     local newHum = newChar:WaitForChild("Humanoid", 10)
-    if not newRoot or not newHum then
-        print("❌ Không có root/hum")
-        return
-    end
-    print("✅ Có root + hum")
+    if not newRoot or not newHum then return end
     
-    -- TELEPORT
-    if lastDeathPosition then
+    task.wait(0.3)
+    
+    -- ✅ TELEPORT 1 LẦN + chỉ giữ nếu bị server đẩy
+    if Settings.KeepDeathPos and lastDeathPosition then
         local target = lastDeathPosition
         local startTime = tick()
-        while tick() - startTime < 1.5 do
-            if newRoot.Parent then
-                newRoot.CFrame = target
-                newRoot.AssemblyLinearVelocity = Vector3.zero
-            end
-            RunService.Heartbeat:Wait()
-        end
-        print("✅ Teleport xong")
-    end
-    
-    task.wait(0.5)
-    
-    task.spawn(function()
-        print("▶️ Bắt đầu animation")
+        local teleported = false
+        local lastPos = nil
         
-        -- Chờ Animator tối đa 4 giây
-        local a = newHum:FindFirstChildOfClass("Animator")
-        if not a then
-            print("⚠️ Chưa có Animator, chờ...")
-            for i = 1, 20 do
-                task.wait(0.2)
-                a = newHum:FindFirstChildOfClass("Animator")
-                if a then print("✅ Animator xuất hiện sau", i * 0.2, "giây") break end
-            end
-        end
-        
-        if not a then
-            print("❌ Animator fail sau 4s")
-            -- Tạo thủ công
-            a = Instance.new("Animator")
-            a.Parent = newHum
-            print("✅ Tạo Animator thủ công")
-        end
-        
-        print("✅ Có Animator")
-        task.wait(0.3)
-        
-        local success, err = pcall(function()
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://" .. tostring(RespawnAnimID)
-            
-            local t = a:LoadAnimation(anim)
-            print("✅ Load animation OK")
-            print("   ID:", anim.AnimationId)
-            print("   Length:", t.Length)
-            
-            t.Priority = Enum.AnimationPriority.Action4
-            t.Looped = false
-            t:Play(0)
-            print("✅ Đã Play. IsPlaying:", t.IsPlaying)
-            
-            task.wait(SkipStart)
-            print("⏱️ Sau SkipStart. IsPlaying:", t.IsPlaying)
-            if not t.IsPlaying then
-                print("❌ Track đã dừng sau", SkipStart, "giây")
+        local conn
+        conn = RunService.Heartbeat:Connect(function()
+            local elapsed = tick() - startTime
+            if not newRoot or not newRoot.Parent then
+                conn:Disconnect()
                 return
             end
             
-            t.TimePosition = SkipEnd
-            print("⏭️ Nhảy tới", SkipEnd)
-            task.wait(0.05)
-            task.wait(TotalDuration - SkipEnd)
+            -- Teleport 1 lần duy nhất lúc đầu
+            if not teleported then
+                newRoot.CFrame = target
+                newRoot.AssemblyLinearVelocity = Vector3.zero
+                newRoot.AssemblyAngularVelocity = Vector3.zero
+                teleported = true
+                lastPos = target.Position
+            end
             
-            if t.IsPlaying then pcall(function() t:Stop(0.1) end) end
-            print("✅ Animation kết thúc")
+            -- Trong 1.5s đầu: chỉ kéo về nếu server đẩy ĐỘT NGỘT
+            if elapsed < 1.5 then
+                local currentPos = newRoot.Position
+                local expectedDist = (currentPos - lastPos).Magnitude
+                
+                if expectedDist > 15 then
+                    newRoot.CFrame = target
+                    newRoot.AssemblyLinearVelocity = Vector3.zero
+                    lastPos = target.Position
+                else
+                    lastPos = currentPos
+                end
+            else
+                conn:Disconnect()
+            end
         end)
-        
-        if not success then
-            print("❌ LỖI trong pcall:", err)
+    end
+    
+    -- ✅ ANIMATION (chờ 0.3s để teleport xong)
+    task.spawn(function()
+        local animator = newHum:FindFirstChildOfClass("Animator")
+        if not animator then
+            animator = newHum:WaitForChild("Animator", 2)
+            if not animator then
+                animator = Instance.new("Animator")
+                animator.Parent = newHum
+            end
         end
+        
+        task.wait(0.3)
+        
+        pcall(function()
+            local animId = "rbxassetid://" .. tostring(RespawnAnimID)
+            local ok, result = pcall(function() return game:GetObjects(animId) end)
+            if ok and result and #result > 0 and result[1]:IsA("Animation") then
+                animId = result[1].AnimationId
+            end
+            
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animId
+            
+            local track = animator:LoadAnimation(anim)
+            track.Priority = Enum.AnimationPriority.Action4
+            track.Looped = false
+            track:Play(0)
+            
+            task.wait(SkipStart)
+            if not track.IsPlaying then return end
+            
+            track.TimePosition = SkipEnd
+            task.wait(0.05)
+            
+            local remaining = TotalDuration - SkipEnd
+            task.wait(remaining)
+            
+            if track.IsPlaying then
+                pcall(function() track:Stop(0.1) end)
+            end
+        end)
     end)
 end)
 
@@ -497,7 +503,6 @@ createBtn("Mesmer-Spin", 71679338021372)
 createBtn("KAPOW-boxing-fighting-punching", 126475463257664)
 createLoopBtn("Mm2", 133457275511275)
 createLoopBtn("Fling-punch", 118002791533481)
-
 local danceBtns = {}
 
 local function createDanceBtn(name, id)
@@ -765,9 +770,7 @@ local function makeButton(name, cb)
     return b
 end
 
-makeToggle("Lock Button", function(a)
-    Settings.Locked = a
-end)
+makeToggle("Lock Button", function(a) Settings.Locked = a end)
 
 makeToggle("Hide Button", function(a)
     Settings.HideMode = a
@@ -796,17 +799,13 @@ end)
 
 makeToggle("Giữ vị trí khi chết", function(a)
     Settings.KeepDeathPos = a
-    if not a then
-        lastDeathPosition = nil
-    end
+    if not a then lastDeathPosition = nil end
 end)
 
 makeToggle("Dance", function(a)
     if a then
         for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = false
-            end
+            if ref and ref.frame and ref.frame.Parent then ref.frame.Visible = false end
         end
         for _, f in pairs(killBtns) do
             if f and f.Parent then f.Visible = false end
@@ -816,9 +815,7 @@ makeToggle("Dance", function(a)
         end
     else
         for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = true
-            end
+            if ref and ref.frame and ref.frame.Parent then ref.frame.Visible = true end
         end
         for _, f in pairs(danceBtns) do
             if f and f.Parent then f.Visible = false end
@@ -833,9 +830,7 @@ end)
 makeToggle("Kill", function(a)
     if a then
         for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = false
-            end
+            if ref and ref.frame and ref.frame.Parent then ref.frame.Visible = false end
         end
         for _, f in pairs(danceBtns) do
             if f and f.Parent then f.Visible = false end
@@ -845,9 +840,7 @@ makeToggle("Kill", function(a)
         end
     else
         for _, ref in pairs(allBtns) do
-            if ref and ref.frame and ref.frame.Parent then
-                ref.frame.Visible = true
-            end
+            if ref and ref.frame and ref.frame.Parent then ref.frame.Visible = true end
         end
         for _, f in pairs(killBtns) do
             if f and f.Parent then f.Visible = false end
