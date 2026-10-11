@@ -58,8 +58,8 @@ player.CharacterAdded:Connect(function(newChar)
 end)
 
 -- ✅ RESPAWN ANIMATION (chạy NGAY khi hồi sinh, tự dừng sau 4s)
-local RespawnAnimID = 134826825394657 -- ← ĐỔI ID Ở ĐÂY
-local RespawnDuration = 4             -- ← ĐỔI SỐ GIÂY Ở ĐÂY
+local RespawnAnimID = 119026808107564 -- ← ĐỔI ID Ở ĐÂY
+local RespawnDuration = 5             -- ← ĐỔI SỐ GIÂY Ở ĐÂY
 
 local function setupRespawnAnimation()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
