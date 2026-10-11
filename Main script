@@ -57,11 +57,12 @@ player.CharacterAdded:Connect(function(newChar)
     trackDeathPosition(newChar)
 end)
 
--- ✅ CẮT ĐOẠN GIỮA CỦA 1 ANIMATION
-local RespawnAnimID = 119026808107564 -- ← ID animation của bạn
-local SkipStart = 4      -- ← Bắt đầu bỏ từ giây thứ mấy
-local SkipEnd = 11        -- ← Kết thúc bỏ tại giây thứ mấy
-local TotalDuration = 13  -- ← Tổng thời gian animation
+local RespawnAnimID = 119026808107564
+local SkipStart = 4          -- Bỏ từ 4s
+local SkipEnd = 7            -- Chạy tiếp từ 7s
+local TotalDuration = 9      -- Animation thật dài 9s
+local SlowSpeed = 0.5        -- ✅ Tốc độ đoạn cuối (0.5 = chậm 50%)
+local HoldTime = 3           -- ✅ Đứng yên thêm 3s sau khi hết (0 = không giữ)
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
@@ -81,7 +82,6 @@ local function setupRespawnCut()
                 animator.Parent = hum
             end
             
-            -- Load animation
             local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
@@ -96,30 +96,37 @@ local function setupRespawnCut()
             track.Looped = false
             track:Play(0)
             
-            -- ✅ GIAI ĐOẠN 1: Chạy từ 0s → 4s
+            -- GIAI ĐOẠN 1: Chạy 0 → SkipStart
             task.wait(SkipStart)
-            
             if not track.IsPlaying then return end
             
-            -- ✅ NHẢY CÓC: Set TimePosition = 11 (bỏ qua 4→11)
+            -- NHẢY CÓC
             track.TimePosition = SkipEnd
             
-            -- ✅ GIAI ĐOẠN 2: Chạy tiếp từ 7s → 9s
-            local remaining = TotalDuration - SkipEnd   -- = 13 - 11 = 5s
-            task.wait(remaining)
+            -- ✅ GIAI ĐOẠN 2: Chạy chậm hơn
+            if SlowSpeed ~= 1 then
+                track:AdjustSpeed(SlowSpeed)
+            end
+            
+            -- Tính thời gian đoạn cuối (đã tính tốc độ chậm)
+            local realTime = (TotalDuration - SkipEnd) / SlowSpeed
+            task.wait(realTime)
+            
+            -- ✅ GIỮ NGUYÊN POSE CUỐI trong HoldTime giây
+            if HoldTime > 0 then
+                task.wait(HoldTime)
+            end
             
             if track.IsPlaying then
-                pcall(function() track:Stop(0.05) end)
+                pcall(function() track:Stop(0.1) end)
             end
         end)
     end
     
-    -- Chạy lần đầu nếu đang sống
     if char and char:FindFirstChildOfClass("Humanoid") then
         playCutAnim(char)
     end
     
-    -- Chạy mỗi lần respawn
     player.CharacterAdded:Connect(function(newChar)
         playCutAnim(newChar)
     end)
