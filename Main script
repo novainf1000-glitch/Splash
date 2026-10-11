@@ -1,4 +1,4 @@
---[[ GUI ANIMATION - PART 1 ]]
+--[[ GUI ANIMATION + RESPAWN SYSTEM ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -464,7 +464,7 @@ local function createLoopBtn(name, id)
             return
         end
 
-        if ActiveButton == b and IsPlaying then
+if ActiveButton == b and IsPlaying then
             StopTrack()
             ActiveButton = nil
             b.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
@@ -502,10 +502,6 @@ local function createLoopBtn(name, id)
     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
     return b
 end
-
-print("✅ PART 1 loaded")
-
---[[ GUI ANIMATION - PART 2 ]]
 
 createBtn("Spin", 133180711707319)
 createBtn("Slap", 118273721275238)
@@ -847,4 +843,268 @@ end)
 makeToggle("Dance", function(a)
     if a then
         for _, ref in pairs(allBtns) do
-            if ref
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = false
+            end
+        end
+        for _, f in pairs(killBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then f.Visible = true end
+        end
+    else
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = true
+            end
+        end
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0.1) end)
+            DanceTrack = nil
+        end
+    end
+end)
+
+makeToggle("Kill", function(a)
+    if a then
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = false
+            end
+        end
+        for _, f in pairs(danceBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
+        for _, f in pairs(killBtns) do
+            if f and f.Parent then f.Visible = true end
+        end
+    else
+        for _, ref in pairs(allBtns) do
+            if ref and ref.frame and ref.frame.Parent then
+                ref.frame.Visible = true
+            end
+        end
+        for _, f in pairs(killBtns) do
+            if f and f.Parent then f.Visible = false end
+        end
+        if DanceTrack then
+            pcall(function() DanceTrack:Stop(0.1) end)
+            DanceTrack = nil
+        end
+    end
+end)
+
+makeButton("Fling Touch", function(b)
+    if Settings.FlingActive then
+        Settings.FlingActive = false
+        b.Text = "Fling Touch"
+        b.BackgroundColor3 = Color3.fromRGB(60, 80, 180)
+        return
+    end
+    Settings.FlingActive = true
+    b.Text = "Fling Touch: ON"
+    b.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Touch%20fling"))()
+    end)
+end)
+
+local function makeScriptBtn(name, url)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(50, 70, 150)
+    b.Text = name
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.Parent = pScroll
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        pcall(function()
+            loadstring(game:HttpGet(url))()
+        end)
+        b.Text = name .. " OK"
+        task.wait(1)
+        b.Text = name
+    end)
+    return b
+end
+
+makeScriptBtn("Fly", "https://rawscripts.net/raw/Universal-Script-Fly-gui-v3-30439")
+makeScriptBtn("Invisible", "https://pastebin.com/raw/3Rnd9rHf")
+makeScriptBtn("TP Tool", "https://raw.githubusercontent.com/novainf1000-glitch/Splash/refs/heads/main/Tp%20tool")
+makeScriptBtn("Crawl", "https://raw.githubusercontent.com/0Ben1/fe/main/obf_vZDX8j5ggfAf58QhdJ59BVEmF6nmZgq4Mcjt2l8wn16CiStIW2P6EkNc605qv9K4.lua.txt")
+makeScriptBtn("Aqua Hub", "https://raw.githubusercontent.com/ExploitFin/AquaMatrix/refs/heads/AquaMatrix/AquaMatrix")
+
+local function makeSlider(name, min, max, def, cb)
+    local c2 = Instance.new("Frame")
+    c2.Size = UDim2.new(1, -10, 0, 42)
+    c2.BackgroundTransparency = 1
+    c2.Parent = pScroll
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name .. ": " .. def
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = c2
+
+local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, 0, 0, 12)
+    bar.Position = UDim2.new(0, 0, 0, 24)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    bar.Parent = c2
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
+
+    local rel0 = (def - min) / (max - min)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(rel0, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(100, 130, 255)
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
+
+    local th = Instance.new("Frame")
+    th.Size = UDim2.new(0, 14, 0, 14)
+    th.AnchorPoint = Vector2.new(0.5, 0.5)
+    th.Position = UDim2.new(rel0, 0, 0.5, 0)
+    th.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    th.Parent = bar
+    Instance.new("UICorner", th).CornerRadius = UDim.new(1, 0)
+
+    local drag = false
+    local function set(v)
+        v = math.clamp(v, min, max)
+        lbl.Text = name .. ": " .. math.floor(v)
+        local r = (v - min) / (max - min)
+        fill.Size = UDim2.new(r, 0, 1, 0)
+        th.Position = UDim2.new(r, 0, 0.5, 0)
+        cb(v)
+    end
+    local function upd(i)
+        local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        set(min + (max - min) * r)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true
+            upd(i)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            upd(i)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
+    end)
+end
+
+makeSlider("Tốc độ Anim", 0, 5, 1, function(v)
+    Settings.Speed = v
+    if CurrentTrack and CurrentTrack.IsPlaying then
+        pcall(function() CurrentTrack:AdjustSpeed(v) end)
+    end
+end)
+
+makeSlider("Tốc chạy", 1, 100, 16, function(v)
+    Settings.WalkSpeed = math.floor(v)
+    if hum then hum.WalkSpeed = math.floor(v) end
+end)
+
+makeSlider("Size", 1, 13, 7, function(v)
+    local size = math.floor(v)
+    Settings.BtnSize = size
+    for _, ref in pairs(allBtns) do
+        if ref and ref.frame and ref.frame.Parent then
+            ref.frame.Size = UDim2.new(1, 0, 0, size * 2.8)
+            if ref.btn then
+                ref.btn.TextSize = math.max(8, size)
+            end
+        end
+    end
+    task.wait(0.1)
+    updateContainerSize()
+end)
+
+local sFrame = Instance.new("Frame")
+sFrame.Size = UDim2.new(0, 32, 0, 32)
+sFrame.Position = UDim2.new(1, -45, 0, 15)
+sFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+sFrame.BorderSizePixel = 0
+sFrame.Active = true
+sFrame.Parent = sg
+Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
+
+local sBtn = Instance.new("TextButton")
+sBtn.Size = UDim2.new(1, 0, 1, 0)
+sBtn.BackgroundColor3 = Color3.new(0, 0, 0)
+sBtn.Text = "S"
+sBtn.TextColor3 = Color3.new(1, 1, 1)
+sBtn.Font = Enum.Font.GothamBold
+sBtn.TextSize = 16
+sBtn.AutoButtonColor = false
+sBtn.BorderSizePixel = 0
+sBtn.Parent = sFrame
+Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 8)
+
+local sDrag = false
+local sDragStart, sDragPos
+local sMoved = false
+
+sBtn.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        sDrag = true
+        sMoved = false
+        sDragStart = i.Position
+        sDragPos = sFrame.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(i)
+    if not sDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local delta = i.Position - sDragStart
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            sMoved = true
+        end
+        if sMoved then
+            sFrame.Position = UDim2.new(
+                sDragPos.X.Scale, sDragPos.X.Offset + delta.X,
+                sDragPos.Y.Scale, sDragPos.Y.Offset + delta.Y
+            )
+        end
+    end
+end)
+
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        sDrag = false
+    end
+end)
+
+sBtn.MouseButton1Click:Connect(function()
+    if sMoved then return end
+    panel.Visible = not panel.Visible
+end)
+
+sBtn.MouseEnter:Connect(function()
+    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+end)
+sBtn.MouseLeave:Connect(function()
+    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
+end)
+
+print("✅ Script loaded OK")
+```
