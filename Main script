@@ -185,13 +185,108 @@ player.CharacterAdded:Connect(function(newChar)
             if elapsed < 1.5 then
                 local currentPos = newRoot.Position
                 local expectedDist = (currentPos - lastPos).Magnitude
-                
-                if expectedDist > 15 then
+
+-- ✅ RESPAWN: QUÉT BODY + CHỐNG SERVER + CẮT ANIMATION
+local RespawnAnimID = 119026808107564
+local SkipStart = 4
+local SkipEnd = 9.8
+local TotalDuration = 10.8
+local lastDeathPosition = nil   -- ✅ CHỈ KHAI BÁO 1 LẦN
+local lastDeathParts = nil      -- 🆕 Lưu parts để debug
+
+-- ========== HÀM QUÉT BODY PARTS ==========
+local function getAccuratePosition(character)
+    if not character then return nil end
+    
+    local totalPos = Vector3.zero
+    local count = 0
+    local lowestY = math.huge
+    
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            if part.Name ~= "Handle" 
+                and not part.Name:match("Accessory")
+                and not part.Name:match("Hat")
+                and not part.Name:match("Hair") then
+                totalPos = totalPos + part.Position
+                count = count + 1
+                if part.Position.Y < lowestY then
+                    lowestY = part.Position.Y
+                end
+            end
+        end
+    end
+    
+    if count == 0 then return nil end
+    
+    local avgPos = totalPos / count
+    local finalY = math.min(avgPos.Y, lowestY + 3)
+    
+    return Vector3.new(avgPos.X, finalY, avgPos.Z)
+end
+
+-- ========== PHẦN 1: LƯU VỊ TRÍ (CHỈ 1 HEARTBEAT, QUÉT 10Hz) ==========
+local lastScan = 0
+RunService.Heartbeat:Connect(function()
+    if not Settings.KeepDeathPos then return end
+    if Settings.FlingActive then return end
+    
+    -- ✅ Quét 10 lần/giây (tránh lag)
+    local now = tick()
+    if now - lastScan < 0.1 then return end
+    lastScan = now
+    
+    local c = player.Character
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    
+    -- ✅ Quét body parts
+    local pos = getAccuratePosition(c)
+    if pos then
+        lastDeathPosition = CFrame.new(pos)
+    end
+end)
+
+-- ========== PHẦN 2: XỬ LÝ KHI RESPAWN ==========
+player.CharacterAdded:Connect(function(newChar)
+    local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
+    local newHum = newChar:WaitForChild("Humanoid", 10)
+    if not newRoot or not newHum then return end
+    
+    task.wait(0.3)
+    
+    -- ✅ 2A: TELEPORT CHỐNG SERVER MẠNH
+    if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
+        local target = lastDeathPosition
+        local startTime = tick()
+        local teleported = false
+        
+        local conn
+        conn = RunService.Heartbeat:Connect(function()
+            local elapsed = tick() - startTime
+            if not newRoot or not newRoot.Parent then
+                conn:Disconnect()
+                return
+            end
+            
+            if Settings.FlingActive then
+                conn:Disconnect()
+                return
+            end
+            
+            -- ✅ GIAI ĐOẠN 1 (0-2s): Giữ vị trí liên tục — chống server đẩy
+            if elapsed < 2 then
+                newRoot.CFrame = target
+                newRoot.AssemblyLinearVelocity = Vector3.zero
+                newRoot.AssemblyAngularVelocity = Vector3.zero
+                teleported = true
+            -- ✅ GIAI ĐOẠN 2 (2-4s): Chỉ kéo về nếu bị đẩy xa > 10 studs
+            elseif elapsed < 4 then
+                local dist = (newRoot.Position - target.Position).Magnitude
+                if dist > 10 then
                     newRoot.CFrame = target
                     newRoot.AssemblyLinearVelocity = Vector3.zero
-                    lastPos = target.Position
-                else
-                    lastPos = currentPos
                 end
             else
                 conn:Disconnect()
@@ -199,7 +294,7 @@ player.CharacterAdded:Connect(function(newChar)
         end)
     end
     
-    -- ✅ 2B: ANIMATION
+    -- ✅ 2B: ANIMATION (chờ 2 frame để teleport chạy xong)
     task.spawn(function()
         local animator = newHum:FindFirstChildOfClass("Animator")
         if not animator then
@@ -210,7 +305,6 @@ player.CharacterAdded:Connect(function(newChar)
             end
         end
         
-        -- ✅ Chờ 2 frame (đủ để teleport chạy)
         RunService.Heartbeat:Wait()
         RunService.Heartbeat:Wait()
         
@@ -233,7 +327,7 @@ player.CharacterAdded:Connect(function(newChar)
             if not track.IsPlaying then return end
             
             track.TimePosition = SkipEnd
-            task.wait(0.05)   -- ✅ Chờ 0.05s thay vì task.wait()
+            task.wait(0.05)
             
             local remaining = TotalDuration - SkipEnd
             task.wait(remaining)
@@ -243,8 +337,7 @@ player.CharacterAdded:Connect(function(newChar)
             end
         end)
     end)
-end)
-    
+end)    
 -- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
 local function getAnimator()
     if not hum then return nil end
