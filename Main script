@@ -41,7 +41,7 @@ local function getAccuratePosition(character)
     local lowestY = math.huge
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            if part.Name ~= "Handle" 
+            if part.Name ~= "Handle"
                 and not part.Name:match("Accessory")
                 and not part.Name:match("Hat")
                 and not part.Name:match("Hair") then
@@ -68,8 +68,8 @@ RunService.Heartbeat:Connect(function()
     lastScan = now
     local c = player.Character
     if not c then return end
-    local hum = c:FindFirstChildOfClass("Humanoid")
-    if not hum or hum.Health <= 0 then return end
+    local h = c:FindFirstChildOfClass("Humanoid")
+    if not h or h.Health <= 0 then return end
     local pos = getAccuratePosition(c)
     if pos then
         lastDeathPosition = CFrame.new(pos)
@@ -81,21 +81,14 @@ player.CharacterAdded:Connect(function(newChar)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
     task.wait(0.3)
-    
     if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
         local target = lastDeathPosition
         local startTime = tick()
         local conn
         conn = RunService.Heartbeat:Connect(function()
             local elapsed = tick() - startTime
-            if not newRoot or not newRoot.Parent then
-                conn:Disconnect()
-                return
-            end
-            if Settings.FlingActive then
-                conn:Disconnect()
-                return
-            end
+            if not newRoot or not newRoot.Parent then conn:Disconnect() return end
+            if Settings.FlingActive then conn:Disconnect() return end
             if elapsed < 2 then
                 newRoot.CFrame = target
                 newRoot.AssemblyLinearVelocity = Vector3.zero
@@ -111,7 +104,6 @@ player.CharacterAdded:Connect(function(newChar)
             end
         end)
     end
-    
     task.spawn(function()
         local animator = newHum:FindFirstChildOfClass("Animator")
         if not animator then
@@ -194,7 +186,6 @@ local function StopTrack()
 end
 
 local noclipPlayerConn = nil
-
 local function startNoclipPlayer()
     if noclipPlayerConn then return end
     noclipPlayerConn = RunService.Heartbeat:Connect(function()
@@ -202,16 +193,13 @@ local function startNoclipPlayer()
             if other ~= player and other.Character then
                 for _, part in pairs(other.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.CanCollide then
-                        pcall(function()
-                            part.CanCollide = false
-                        end)
+                        pcall(function() part.CanCollide = false end)
                     end
                 end
             end
         end
     end)
 end
-
 local function stopNoclipPlayer()
     if noclipPlayerConn then
         noclipPlayerConn:Disconnect()
@@ -261,7 +249,6 @@ local function updateContainerSize()
         container.Size = UDim2.new(0, 130, 0, h + 20)
     end
 end
-
 containerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     updateContainerSize()
 end)
@@ -372,7 +359,6 @@ local function createBtn(name, id)
             end
             return
         end
-
         if ActiveButton == b and IsPlaying then
             StopTrack()
             ActiveButton = nil
@@ -394,7 +380,6 @@ local function createBtn(name, id)
             end
         end
     end)
-
     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
     return b
 end
@@ -463,8 +448,7 @@ local function createLoopBtn(name, id)
             end
             return
         end
-
-if ActiveButton == b and IsPlaying then
+        if ActiveButton == b and IsPlaying then
             StopTrack()
             ActiveButton = nil
             b.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
@@ -472,21 +456,15 @@ if ActiveButton == b and IsPlaying then
             StopTrack()
             local a = getAnimator()
             if not a then return end
-            
             local animId = "rbxassetid://" .. tostring(id)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
                 animId = result[1].AnimationId
             end
-            
             local anim = Instance.new("Animation")
             anim.AnimationId = animId
-            
             local tr
-            pcall(function()
-                tr = a:LoadAnimation(anim)
-            end)
-            
+            pcall(function() tr = a:LoadAnimation(anim) end)
             if tr then
                 tr.Priority = Enum.AnimationPriority.Action4
                 tr.Looped = true
@@ -498,7 +476,6 @@ if ActiveButton == b and IsPlaying then
             end
         end
     end)
-
     table.insert(allBtns, {frame = f, btn = b, name = name, id = id})
     return b
 end
@@ -550,12 +527,8 @@ local function createDanceBtn(name, id)
     b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
-    b.MouseEnter:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
-    end)
-    b.MouseLeave:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    end)
+    b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(60, 30, 30) end)
+    b.MouseLeave:Connect(function() b.BackgroundColor3 = Color3.fromRGB(40, 20, 20) end)
 
     b.MouseButton1Click:Connect(function()
         if DanceTrack then
@@ -578,7 +551,6 @@ local function createDanceBtn(name, id)
             DanceTrack:Play(0.1)
         end)
     end)
-
     table.insert(danceBtns, f)
     return b
 end
@@ -604,12 +576,8 @@ local function createkillBtn(name, id)
     b.Parent = f
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 
-    b.MouseEnter:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
-    end)
-    b.MouseLeave:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    end)
+    b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(60, 30, 30) end)
+    b.MouseLeave:Connect(function() b.BackgroundColor3 = Color3.fromRGB(40, 20, 20) end)
 
     b.MouseButton1Click:Connect(function()
         if DanceTrack then
@@ -632,7 +600,6 @@ local function createkillBtn(name, id)
             DanceTrack:Play(0.1)
         end)
     end)
-
     table.insert(killBtns, f)
     return b
 end
@@ -926,9 +893,7 @@ local function makeScriptBtn(name, url)
     b.Parent = pScroll
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     b.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet(url))()
-        end)
+        pcall(function() loadstring(game:HttpGet(url))() end)
         b.Text = name .. " OK"
         task.wait(1)
         b.Text = name
@@ -958,7 +923,7 @@ local function makeSlider(name, min, max, def, cb)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = c2
 
-local bar = Instance.new("Frame")
+    local bar = Instance.new("Frame")
     bar.Size = UDim2.new(1, 0, 0, 12)
     bar.Position = UDim2.new(0, 0, 0, 24)
     bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -1107,4 +1072,3 @@ sBtn.MouseLeave:Connect(function()
 end)
 
 print("✅ Script loaded OK")
-```
