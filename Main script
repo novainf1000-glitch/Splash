@@ -157,34 +157,33 @@ if Settings.KeepDeathPos and lastDeathPosition then
     end)
 end
     
-    -- ✅ 2B: PHÁT ANIMATION CẮT ĐOẠN GIỮA
-    task.spawn(function()
-        local animator = newHum:FindFirstChildOfClass("Animator")
+task.spawn(function()
+    local animator = newHum:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = newHum:WaitForChild("Animator", 2)
         if not animator then
-            animator = newHum:WaitForChild("Animator", 2)
-            if not animator then
-                animator = Instance.new("Animator")
-                animator.Parent = newHum
-            end
+            animator = Instance.new("Animator")
+            animator.Parent = newHum
+        end
+    end
+    
+    -- ✅ CHỜ 1 FRAME (0.016s) — đủ để teleport chạy
+    RunService.Heartbeat:Wait()
+    
+    pcall(function()
+        local animId = "rbxassetid://" .. tostring(RespawnAnimID)
+        local ok, result = pcall(function() return game:GetObjects(animId) end)
+        if ok and result and #result > 0 and result[1]:IsA("Animation") then
+            animId = result[1].AnimationId
         end
         
-        task.wait(0.0001)
+        local anim = Instance.new("Animation")
+        anim.AnimationId = animId
         
-        pcall(function()
-            -- Load animation
-            local animId = "rbxassetid://" .. tostring(RespawnAnimID)
-            local ok, result = pcall(function() return game:GetObjects(animId) end)
-            if ok and result and #result > 0 and result[1]:IsA("Animation") then
-                animId = result[1].AnimationId
-            end
-            
-            local anim = Instance.new("Animation")
-            anim.AnimationId = animId
-            
-            local track = animator:LoadAnimation(anim)
-            track.Priority = Enum.AnimationPriority.Action4
-            track.Looped = false
-            track:Play(0)
+        local track = animator:LoadAnimation(anim)
+        track.Priority = Enum.AnimationPriority.Action4
+        track.Looped = false
+        track:Play(0)
             
             -- ✅ GIAI ĐOẠN 1: Chạy 0 → SkipStart (4s)
             task.wait(SkipStart)
