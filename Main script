@@ -48,22 +48,41 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- Khi respawn: teleport 1 lần rồi thôi
+
 player.CharacterAdded:Connect(function(newChar)
     local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
     
-    -- Teleport 1 lần duy nhất
-    if Settings.KeepDeathPos and lastDeathPosition and not Settings.FlingActive then
-        newRoot.CFrame = lastDeathPosition
-        newRoot.AssemblyLinearVelocity = Vector3.zero
+    -- ✅ BƯỚC 1: TELEPORT (không spawn animation cùng lúc)
+    if lastDeathPosition then
+        local target = lastDeathPosition
+        local startTime = tick()
+        while tick() - startTime < 1.5 do
+            if newRoot.Parent then
+                newRoot.CFrame = target
+                newRoot.AssemblyLinearVelocity = Vector3.zero
+            end
+            RunService.Heartbeat:Wait()
+        end
     end
     
-    -- Animation respawn (cắt đoạn)
+    -- ✅ BƯỚC 2: Đợi vị trí ổn định rồi mới chạy animation
+    task.wait(0.5)   -- chờ 0.5s cho nhân vật đứng yên
+    
     task.spawn(function()
-        local a = newHum:FindFirstChildOfClass("Animator") or Instance.new("Animator", newHum)
-        RunService.Heartbeat:Wait()
-        RunService.Heartbeat:Wait()
+        local a = newHum:FindFirstChildOfClass("Animator")
+        if not a then
+            a = newHum:WaitForChild("Animator", 3)
+            if not a then
+                a = Instance.new("Animator")
+                a.Parent = newHum
+            end
+        end
+        
+        -- Chờ Animator sẵn sàng hoàn toàn
+        task.wait(0.3)
+        
         pcall(function()
             local anim = Instance.new("Animation")
             anim.AnimationId = "rbxassetid://" .. tostring(RespawnAnimID)
@@ -71,6 +90,7 @@ player.CharacterAdded:Connect(function(newChar)
             t.Priority = Enum.AnimationPriority.Action4
             t.Looped = false
             t:Play(0)
+            
             task.wait(SkipStart)
             if not t.IsPlaying then return end
             t.TimePosition = SkipEnd
