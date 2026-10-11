@@ -999,7 +999,7 @@ local sDrag = false
 local sDragStart, sDragPos
 local sMoved = false
 
-sFrame.InputBegan:Connect(function(i)
+sBtn.InputBegan:Connect(function(i)     -- 👈 ĐỔI sFrame → sBtn
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         sDrag = true
         sMoved = false
@@ -1029,18 +1029,3 @@ UIS.InputEnded:Connect(function(i)
         sDrag = false
     end
 end)
-
--- ✅ CLICK (đặt SAU khi sBtn đã tạo)
-sBtn.MouseButton1Click:Connect(function()
-    if sMoved then return end
-    panel.Visible = not panel.Visible
-end)
-
-sBtn.MouseEnter:Connect(function()
-    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
-end)
-sBtn.MouseLeave:Connect(function()
-    TweenService:Create(sBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.new(0,0,0)}):Play()
-end)
-
-
