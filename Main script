@@ -71,12 +71,14 @@ player.CharacterAdded:Connect(function(newChar)
     end
 end)
 
--- ✅ GIỮ VỊ TRÍ + RESPAWN ANIMATION (fix race condition)
-local RespawnAnimID = 119026808107564
-local RespawnDuration = 4
+-- ✅ RESPAWN: GIỮ VỊ TRÍ + CẮT ANIMATION
+local RespawnAnimID =  119026808107564  -- ID animation
+local SkipStart = 4                    -- Chạy 0 → 4s
+local SkipEnd = 9.8                     -- Nhảy cóc tới giây 15
+local TotalDuration = 11               -- Animation dài 18s → chạy 15 → 18
 local lastDeathPosition = nil
 
--- Lưu vị trí liên tục khi sống
+-- ========== PHẦN 1: LƯU VỊ TRÍ LIÊN TỤC ==========
 RunService.Heartbeat:Connect(function()
     if not Settings.KeepDeathPos then return end
     local c = player.Character
@@ -88,38 +90,50 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Xử lý khi respawn
+-- ========== PHẦN 2: XỬ LÝ KHI RESPAWN ==========
 player.CharacterAdded:Connect(function(newChar)
-    -- ✅ Chờ mọi thứ sẵn sàng
     local newRoot = newChar:WaitForChild("HumanoidRootPart", 10)
     local newHum = newChar:WaitForChild("Humanoid", 10)
     if not newRoot or not newHum then return end
     
-    -- ✅ Chờ thêm để ổn định
     task.wait(0.3)
     
-    -- ✅ Teleport về vị trí chết
+    -- ✅ 2A: TELEPORT VỀ VỊ TRÍ CHẾT (5s + ngắt cuối)
     if Settings.KeepDeathPos and lastDeathPosition then
         local target = lastDeathPosition
         local startTime = tick()
+        
         local conn
         conn = RunService.Heartbeat:Connect(function()
-            if tick() - startTime > 3 then
+            local elapsed = tick() - startTime
+            if not newRoot or not newRoot.Parent then
                 conn:Disconnect()
                 return
             end
-            if newRoot and newRoot.Parent then
+            
+            if elapsed < 5 then
                 newRoot.CFrame = target
                 newRoot.AssemblyLinearVelocity = Vector3.zero
+                newRoot.AssemblyAngularVelocity = Vector3.zero
+            elseif elapsed < 10 then
+                local dist = (newRoot.Position - target.Position).Magnitude
+                if dist > 5 then
+                    newRoot.CFrame = target
+                    newRoot.AssemblyLinearVelocity = Vector3.zero
+                end
             else
+                -- Ngắt cuối: teleport 1 lần nữa
+                if newRoot and newRoot.Parent then
+                    newRoot.CFrame = target
+                    newRoot.AssemblyLinearVelocity = Vector3.zero
+                end
                 conn:Disconnect()
             end
         end)
     end
     
-    -- ✅ Phát animation respawn
+    -- ✅ 2B: PHÁT ANIMATION CẮT ĐOẠN GIỮA
     task.spawn(function()
-        -- Chờ Animator có thật
         local animator = newHum:FindFirstChildOfClass("Animator")
         if not animator then
             animator = newHum:WaitForChild("Animator", 2)
@@ -129,10 +143,10 @@ player.CharacterAdded:Connect(function(newChar)
             end
         end
         
-        -- Chờ animation mặc định ổn định
         task.wait(0.3)
         
         pcall(function()
+            -- Load animation
             local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
@@ -144,14 +158,25 @@ player.CharacterAdded:Connect(function(newChar)
             
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action4
-            track.Looped = true
-            track:Play(0.1)
+            track.Looped = false
+            track:Play(0)
             
-            task.delay(RespawnDuration, function()
-                if track and track.IsPlaying then
-                    pcall(function() track:Stop(0.2) end)
-                end
-            end)
+            -- ✅ GIAI ĐOẠN 1: Chạy 0 → SkipStart (4s)
+            task.wait(SkipStart)
+            if not track.IsPlaying then return end
+            
+            -- ✅ NHẢY CÓC: nhảy tới giây SkipEnd (15s)
+            track.TimePosition = SkipEnd
+            task.wait()   -- chờ 1 frame để update
+            
+            -- ✅ GIAI ĐOẠN 2: Chạy SkipEnd → TotalDuration (15 → 18 = 3s)
+            local remaining = TotalDuration - SkipEnd
+            task.wait(remaining)
+            
+            -- Dừng
+            if track.IsPlaying then
+                pcall(function() track:Stop(0.1) end)
+            end
         end)
     end)
 end)
