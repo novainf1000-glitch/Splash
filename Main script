@@ -60,7 +60,7 @@ end)
 local RespawnAnimID = 119026808107564
 local SkipStart = 4          -- Bỏ từ 4s
 local SkipEnd = 10            -- Chạy tiếp từ 7s
-local TotalDuration = 11      -- Animation thật dài 9s
+local TotalDuration = 16      -- Animation thật dài 9s
 local SlowSpeed = 0.5        -- ✅ Tốc độ đoạn cuối (0.5 = chậm 50%)
 local HoldTime = 5           -- ✅ Đứng yên thêm 3s sau khi hết (0 = không giữ)
 
