@@ -60,8 +60,8 @@ end)
 -- ✅ RESPAWN ANIMATION — Nhảy cóc
 local RespawnAnimID = 119026808107564
 local SkipStart = 4        -- Chạy 0 → 4s
-local SkipEnd = 15         -- Nhảy cóc tới giây 15
-local TotalDuration = 18   -- Animation dài 18s → chạy 15 → 18
+local SkipEnd = 7         -- Nhảy cóc tới giây 15
+local TotalDuration = 10   -- Animation dài 18s → chạy 15 → 18
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
