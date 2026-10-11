@@ -25,17 +25,19 @@ player.CharacterAdded:Connect(function(c)
     hum.WalkSpeed = Settings.WalkSpeed
 end)
 
--- ✅ DEATH ANIMATION
-local DeathAnimID = 89198573930777  -- ← ĐỔI ID Ở ĐÂY
+-- ✅ RESPAWN ANIMATION (chạy khi hồi sinh)
+local RespawnAnimID = 89198573930777  -- ← ĐỔI ID Ở ĐÂY
 
-local function setupDeathAnimation()
-    if not DeathAnimID or DeathAnimID == 0 then return end
+local function setupRespawnAnimation()
+    if not RespawnAnimID or RespawnAnimID == 0 then return end
     
-    local function onDeath()
-        local c = player.Character
+    local function playRespawnAnim(c)
         if not c then return end
         local hum = c:FindFirstChildOfClass("Humanoid")
         if not hum then return end
+        
+        -- Chờ nhân vật load xong
+        task.wait(0.3)
         
         pcall(function()
             local animator = hum:FindFirstChildOfClass("Animator")
@@ -44,7 +46,7 @@ local function setupDeathAnimation()
                 animator.Parent = hum
             end
             
-            local animId = "rbxassetid://" .. tostring(DeathAnimID)
+            local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
                 animId = result[1].AnimationId
@@ -60,23 +62,18 @@ local function setupDeathAnimation()
         end)
     end
     
-    -- Kết nối với nhân vật hiện tại
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.Died:Connect(onDeath)
-        end
+    -- Chạy cho nhân vật hiện tại (nếu đang sống)
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        playRespawnAnim(char)
     end
     
-    -- Kết nối với nhân vật mới (respawn)
-    player.CharacterAdded:Connect(function(newChar)
-        local newHum = newChar:WaitForChild("Humanoid")
-        newHum.Died:Connect(onDeath)
-    end)
+    -- Chạy mỗi khi nhân vật mới xuất hiện (respawn)
+    player.CharacterAdded:Connect(playRespawnAnim)
 end
 
-setupDeathAnimation()
+setupRespawnAnimation()
 
+-- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
 local function getAnimator()
     if not hum then return nil end
     local a = hum:FindFirstChildOfClass("Animator")
@@ -113,6 +110,7 @@ local function LoadTrack(id)
     return track
 end
 
+-- ✅ Sau đó mới đến StopTrack
 local function StopTrack()
     if CurrentTrack then
         pcall(function() CurrentTrack:Stop(0.1) end)
