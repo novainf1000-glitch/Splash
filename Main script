@@ -59,10 +59,10 @@ end)
 
 local RespawnAnimID = 119026808107564
 local SkipStart = 4          -- Bỏ từ 4s
-local SkipEnd = 7            -- Chạy tiếp từ 7s
-local TotalDuration = 9      -- Animation thật dài 9s
+local SkipEnd = 10            -- Chạy tiếp từ 7s
+local TotalDuration = 11      -- Animation thật dài 9s
 local SlowSpeed = 0.5        -- ✅ Tốc độ đoạn cuối (0.5 = chậm 50%)
-local HoldTime = 3           -- ✅ Đứng yên thêm 3s sau khi hết (0 = không giữ)
+local HoldTime = 5           -- ✅ Đứng yên thêm 3s sau khi hết (0 = không giữ)
 
 local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
