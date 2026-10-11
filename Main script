@@ -57,31 +57,31 @@ player.CharacterAdded:Connect(function(newChar)
     trackDeathPosition(newChar)
 end)
 
--- ✅ RESPAWN ANIMATION (chạy NGAY khi hồi sinh, tự dừng sau 4s)
-local RespawnAnimID = 119026808107564 -- ← ĐỔI ID Ở ĐÂY
-local RespawnDuration = 5             -- ← ĐỔI SỐ GIÂY Ở ĐÂY
+-- ✅ CẮT ĐOẠN GIỮA CỦA 1 ANIMATION
+local RespawnAnimID = 89198573930777  -- ← ID animation của bạn
+local SkipStart = 4      -- ← Bắt đầu bỏ từ giây thứ mấy
+local SkipEnd = 7        -- ← Kết thúc bỏ tại giây thứ mấy
+local TotalDuration = 9  -- ← Tổng thời gian animation
 
-local function setupRespawnAnimation()
+local function setupRespawnCut()
     if not RespawnAnimID or RespawnAnimID == 0 then return end
     
-    local function playRespawnAnim(c)
+    local function playCutAnim(c)
         if not c then return end
-        
-        -- ✅ KHÔNG CHỜ - chạy ngay
         local hum = c:FindFirstChildOfClass("Humanoid")
         if not hum then
-            -- Nếu chưa có Humanoid thì chờ tối thiểu
             hum = c:WaitForChild("Humanoid", 1)
             if not hum then return end
         end
         
-        pcall(function()
+        task.spawn(function()
             local animator = hum:FindFirstChildOfClass("Animator")
             if not animator then
                 animator = Instance.new("Animator")
                 animator.Parent = hum
             end
             
+            -- Load animation
             local animId = "rbxassetid://" .. tostring(RespawnAnimID)
             local ok, result = pcall(function() return game:GetObjects(animId) end)
             if ok and result and #result > 0 and result[1]:IsA("Animation") then
@@ -93,31 +93,39 @@ local function setupRespawnAnimation()
             
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action4
-            track.Looped = true
-            track:Play(0)          -- ✅ fade 0s = chạy ngay tức thì
-            -- Hoặc track:Play(0.1) nếu muốn mượt hơn một chút
+            track.Looped = false
+            track:Play(0)
             
-            -- ✅ Tự dừng sau RespawnDuration giây
-            task.delay(RespawnDuration, function()
-                if track and track.IsPlaying then
-                    pcall(function() track:Stop(0.2) end)
-                end
-            end)
+            -- ✅ GIAI ĐOẠN 1: Chạy từ 0s → 4s
+            task.wait(SkipStart)
+            
+            if not track.IsPlaying then return end
+            
+            -- ✅ NHẢY CÓC: Set TimePosition = 7 (bỏ qua 4→7)
+            track.TimePosition = SkipEnd
+            
+            -- ✅ GIAI ĐOẠN 2: Chạy tiếp từ 7s → 9s
+            local remaining = TotalDuration - SkipEnd   -- = 9 - 7 = 2s
+            task.wait(remaining)
+            
+            if track.IsPlaying then
+                pcall(function() track:Stop(0.05) end)
+            end
         end)
     end
     
-    -- Chạy lần đầu (khi execute script)
+    -- Chạy lần đầu nếu đang sống
     if char and char:FindFirstChildOfClass("Humanoid") then
-        playRespawnAnim(char)
+        playCutAnim(char)
     end
     
-    -- Chạy mỗi lần respawn — KHÔNG CHỜ
+    -- Chạy mỗi lần respawn
     player.CharacterAdded:Connect(function(newChar)
-        playRespawnAnim(newChar)   -- ✅ Gọi ngay, không task.wait
+        playCutAnim(newChar)
     end)
 end
 
-setupRespawnAnimation()
+setupRespawnCut()
     
 -- 🆕 CHÈN LẠI ĐOẠN NÀY (bị thiếu)
 local function getAnimator()
