@@ -168,7 +168,7 @@ end
             end
         end
         
-        task.wait(0.3)
+        task.wait(0)
         
         pcall(function()
             -- Load animation
