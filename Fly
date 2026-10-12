@@ -17,15 +17,19 @@ local Config = {
     -- 🎬 ANIMATION ID
     FlyAnimID = 102256275785620,
     NormalAnimID = 102256275785620,
-    DashAnimID = 0,
+    DashAnimID = 120732463359559,
     HoverAnimID = 0,
     SpeedFlyAnimID = 83573219882155,
     FastAnimID = 0,
     
-    SkipStart = 4,
-    SkipEnd = 9.8,
-    TotalDuration = 10.8,
-    AnimSpeed = 1,
+    local Config = {
+    -- 🎬 Animation + cắt riêng cho từng mode
+    NormalAnim = { id = 102256275785620, skipStart = 0, skipEnd = 0, total = 99 },
+    DashAnim   = { id = 120732463359559, skipStart = 2, skipEnd = 5,   total = 6   },
+    HoverAnim  = { id = 222222222222222, skipStart = 0, skipEnd = 3,   total = 4   },
+    SpeedAnim  = { id = 83573219882155, skipStart = 0, skipEnd = 0,   total = 3   },
+    FastAnim   = { id = 444444444444444, skipStart = 0, skipEnd = 2,   total = 3   },
+}
     
     FlyDirection = "Character",
     ShiftLock = true,
