@@ -1,0 +1,636 @@
+--[[ GUI FLY - Style theo ảnh ]]
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+
+-- ========== CONFIG ==========
+local Config = {
+    FlySpeed = 50,
+    SlowSpeed = 30,
+    FastSpeed = 100,
+    HoverHeight = 4,
+    DashDistance = 30,
+    
+    -- 🎬 ANIMATION ID
+    FlyAnimID = 119026808107564,
+    NormalAnimID = 0,
+    DashAnimID = 0,
+    HoverAnimID = 0,
+    SpeedFlyAnimID = 0,
+    FastAnimID = 0,
+    
+    SkipStart = 4,
+    SkipEnd = 9.8,
+    TotalDuration = 10.8,
+    AnimSpeed = 1,
+    
+    FlyDirection = "Character",
+    ShiftLock = true,
+}
+
+-- ========== STATE ==========
+local State = {
+    Flying = false,
+    FlyBV = nil,
+    FlyBG = nil,
+    AnimTrack = nil,
+    Mode = "None",
+    SpeedUpTime = nil,
+}
+
+-- ========== CHARACTER ==========
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local root = char:WaitForChild("HumanoidRootPart")
+
+player.CharacterAdded:Connect(function(c)
+    char = c
+    hum = c:WaitForChild("Humanoid")
+    root = c:WaitForChild("HumanoidRootPart")
+    State.Flying = false
+    State.Mode = "None"
+    State.SpeedUpTime = nil
+    if State.FlyBV then State.FlyBV:Destroy() State.FlyBV = nil end
+    if State.FlyBG then State.FlyBG:Destroy() State.FlyBG = nil end
+    State.AnimTrack = nil
+    task.wait(0.5)
+    applyShiftLock()
+end)
+
+-- ========== THÔNG BÁO ==========
+function notify(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title, Text = text, Duration = 1.5
+        })
+    end)
+end
+
+-- ========== SHIFT LOCK ==========
+function applyShiftLock()
+    if not Config.ShiftLock then return end
+    local c = player.Character
+    if not c then return end
+    local h = c:FindFirstChildOfClass("Humanoid")
+    if h then
+        h.CameraOffset = Vector3.new(1.75, 0.5, 0)
+    end
+    player.CameraMode = Enum.CameraMode.LockFirstPerson
+end
+
+-- Áp dụng ban đầu
+task.wait(0.5)
+applyShiftLock()
+
+-- ========== ANIMATION ==========
+local function playCutAnim(animID)
+    if not animID or animID == 0 then return end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = hum
+    end
+    if State.AnimTrack then
+        pcall(function() State.AnimTrack:Stop(0.1) end)
+        State.AnimTrack = nil
+    end
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://" .. tostring(animID)
+    local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
+    if not ok or not track then return end
+    track.Priority = Enum.AnimationPriority.Action4
+    track.Looped = false
+    track:Play(0.1)
+    State.AnimTrack = track
+    task.spawn(function()
+        while State.AnimTrack == track and State.Flying do
+            task.wait(Config.SkipStart)
+            if State.AnimTrack ~= track or not State.Flying then break end
+            track.TimePosition = Config.SkipEnd
+            task.wait()
+            local remaining = (Config.TotalDuration - Config.SkipEnd) / Config.AnimSpeed
+            task.wait(remaining)
+            if State.AnimTrack ~= track or not State.Flying then break end
+            track:Play(0.1)
+        end
+    end)
+end
+
+local function stopAnim()
+    if State.AnimTrack then
+        pcall(function() State.AnimTrack:Stop(0.2) end)
+        State.AnimTrack = nil
+    end
+end
+
+-- ========== FLY ==========
+local function startFly(mode)
+    if State.Flying then return end
+    if not root then return end
+    
+    State.Flying = true
+    State.Mode = mode or "Normal"
+    State.SpeedUpTime = tick()
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = root
+    State.FlyBV = bv
+    
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bg.P = 10000
+    bg.D = 500
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+    State.FlyBG = bg
+    
+    local animID = Config.NormalAnimID
+    if State.Mode == "Dash" then
+        animID = Config.DashAnimID
+    elseif State.Mode == "Hover" then
+        animID = Config.HoverAnimID
+    elseif State.Mode == "SpeedFly" then
+        animID = Config.SpeedFlyAnimID
+    end
+    if animID == 0 then
+        animID = Config.FlyAnimID
+    end
+    
+    playCutAnim(animID)
+    notify("✈️", "Fly: " .. State.Mode)
+end
+
+local function stopFly()
+    if not State.Flying then return end
+    State.Flying = false
+    State.Mode = "None"
+    State.SpeedUpTime = nil
+    if State.FlyBV then State.FlyBV:Destroy() State.FlyBV = nil end
+    if State.FlyBG then State.FlyBG:Destroy() State.FlyBG = nil end
+    stopAnim()
+    notify("✈️", "Đã tắt")
+end
+
+local flyConn = nil
+
+local function startFlyLoop()
+    if flyConn then flyConn:Disconnect() end
+    flyConn = RunService.RenderStepped:Connect(function()
+        if not State.Flying then return end
+        if not root or not hum then return end
+        if hum.Health <= 0 then stopFly() return end
+        
+        local cam = workspace.CurrentCamera
+        local moveDir = Vector3.zero
+        local camCF = cam.CFrame
+        local rootCF = root.CFrame
+        
+        local forward, right, up
+        if Config.FlyDirection == "Camera" then
+            forward = camCF.LookVector
+            right = camCF.RightVector
+        else
+            forward = rootCF.LookVector
+            right = rootCF.RightVector
+        end
+        up = Vector3.new(0, 1, 0)
+        
+        if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + forward end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - forward end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - right end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + right end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + up end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - up end
+        
+        local speed = Config.FlySpeed
+        if State.Mode == "SpeedFly" then
+            if State.SpeedUpTime and tick() - State.SpeedUpTime > 2 then
+                speed = Config.FastSpeed
+            else
+                speed = Config.SlowSpeed
+            end
+        end
+        
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * speed
+        end
+        State.FlyBV.Velocity = moveDir
+        
+        if Config.FlyDirection == "Character" and moveDir.Magnitude > 0 then
+            local lookDir = Vector3.new(moveDir.X, 0, moveDir.Z)
+            if lookDir.Magnitude > 0 then
+                State.FlyBG.CFrame = CFrame.new(root.Position, root.Position + lookDir)
+            end
+        else
+            State.FlyBG.CFrame = CFrame.new(root.Position, root.Position + camCF.LookVector)
+        end
+    end)
+end
+
+-- ========== PHÍM TẮT ==========
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        if State.Flying then
+            stopFly()
+            if flyConn then flyConn:Disconnect() end
+        else
+            startFly("Normal")
+            startFlyLoop()
+        end
+    end
+end)
+
+-- ========== GUI ==========
+local sg = Instance.new("ScreenGui")
+sg.Name = "FlyGui"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.Parent = CoreGui
+
+-- Nút Settings ⚙️
+local settingBtn = Instance.new("TextButton")
+settingBtn.Size = UDim2.new(0, 45, 0, 45)
+settingBtn.Position = UDim2.new(0, 15, 0, 100)
+settingBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+settingBtn.BackgroundTransparency = 0.2
+settingBtn.Text = "⚙️"
+settingBtn.TextColor3 = Color3.new(1, 1, 1)
+settingBtn.TextSize = 24
+settingBtn.Font = Enum.Font.GothamBold
+settingBtn.AutoButtonColor = false
+settingBtn.Parent = sg
+Instance.new("UICorner", settingBtn).CornerRadius = UDim.new(0, 10)
+
+local settingStroke = Instance.new("UIStroke")
+settingStroke.Color = Color3.fromRGB(60, 60, 60)
+settingStroke.Thickness = 2
+settingStroke.Parent = settingBtn
+
+-- Container nút (bên trái, dọc)
+local container = Instance.new("Frame")
+container.Name = "BtnContainer"
+container.Size = UDim2.new(0, 130, 0, 200)
+container.Position = UDim2.new(0, 15, 0, 160)
+container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+container.BackgroundTransparency = 0.3
+container.BorderSizePixel = 0
+container.Active = true
+container.Parent = sg
+Instance.new("UICorner", container).CornerRadius = UDim.new(0, 12)
+
+local containerStroke = Instance.new("UIStroke")
+containerStroke.Color = Color3.fromRGB(100, 100, 200)
+containerStroke.Thickness = 1.5
+containerStroke.Transparency = 0.3
+containerStroke.Parent = container
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = container
+
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 8)
+pad.PaddingLeft = UDim.new(0, 8)
+pad.PaddingRight = UDim.new(0, 8)
+pad.PaddingBottom = UDim.new(0, 8)
+pad.Parent = container
+
+local function updateContainerSize()
+    local h = layout.AbsoluteContentSize.Y
+    if h > 0 then
+        container.Size = UDim2.new(0, 130, 0, h + 16)
+    end
+end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateContainerSize)
+
+-- Nút tạo button
+local allBtns = {}
+local function createBtn(name, mode, icon, color)
+    color = color or Color3.fromRGB(30, 30, 50)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 45)
+    f.BackgroundColor3 = color
+    f.BorderSizePixel = 0
+    f.Parent = container
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+    
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 1, 0)
+    b.BackgroundTransparency = 1
+    b.Text = ""
+    b.AutoButtonColor = false
+    b.Parent = f
+    
+    local iconLbl = Instance.new("TextLabel")
+    iconLbl.Size = UDim2.new(0, 40, 0, 45)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon or "✈️"
+    iconLbl.TextColor3 = Color3.new(1, 1, 1)
+    iconLbl.TextSize = 22
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.Parent = f
+    
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(1, -45, 1, 0)
+    nameLbl.Position = UDim2.new(0, 42, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = name
+    nameLbl.TextColor3 = Color3.new(1, 1, 1)
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextSize = 11
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.Parent = f
+    
+    b.MouseButton1Click:Connect(function()
+        if State.Flying and State.Mode == mode then
+            stopFly()
+            if flyConn then flyConn:Disconnect() end
+            f.BackgroundColor3 = color
+        else
+            stopFly()
+            if flyConn then flyConn:Disconnect() end
+            startFly(mode)
+            startFlyLoop()
+            for _, btn in pairs(allBtns) do
+                btn.frame.BackgroundColor3 = btn.color
+            end
+            f.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        end
+    end)
+    
+    table.insert(allBtns, {frame = f, btn = b, color = color})
+    return b
+end
+
+createBtn("Bay thường", "Normal", "✈️", Color3.fromRGB(30, 30, 50))
+createBtn("Dash + Fly", "Dash", "🚀", Color3.fromRGB(50, 30, 30))
+createBtn("Hover", "Hover", "🛸", Color3.fromRGB(30, 50, 30))
+createBtn("Speed Fly", "SpeedFly", "⚡", Color3.fromRGB(50, 50, 30))
+
+-- ========== SETTINGS MENU ==========
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 260, 0, 400)
+menu.Position = UDim2.new(0, 160, 0, 100)
+menu.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+menu.BorderSizePixel = 0
+menu.Visible = false
+menu.Parent = sg
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 12)
+
+local menuStroke = Instance.new("UIStroke")
+menuStroke.Color = Color3.fromRGB(100, 100, 200)
+menuStroke.Thickness = 1.5
+menuStroke.Parent = menu
+
+local title = Instance.new("TextButton")
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+title.Text = "⚙️ SETTINGS"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 13
+title.AutoButtonColor = false
+title.Parent = menu
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -45)
+scroll.Position = UDim2.new(0, 5, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 4
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Parent = menu
+
+local scrollLayout = Instance.new("UIListLayout")
+scrollLayout.Padding = UDim.new(0, 5)
+scrollLayout.Parent = scroll
+
+scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, scrollLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local function makeSlider(label, min, max, def, cb)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, -10, 0, 42)
+    f.BackgroundTransparency = 1
+    f.Parent = scroll
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label .. ": " .. def
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 220)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = f
+    
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, 0, 0, 12)
+    bar.Position = UDim2.new(0, 0, 0, 24)
+    bar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    bar.Parent = f
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
+    
+    local rel0 = (def - min) / (max - min)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(rel0, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(100, 130, 255)
+    fill.Parent = bar
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 6)
+    
+    local th = Instance.new("Frame")
+    th.Size = UDim2.new(0, 14, 0, 14)
+    th.AnchorPoint = Vector2.new(0.5, 0.5)
+    th.Position = UDim2.new(rel0, 0, 0.5, 0)
+    th.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    th.Parent = bar
+    Instance.new("UICorner", th).CornerRadius = UDim.new(1, 0)
+    
+    local drag = false
+    local function set(v)
+        v = math.clamp(v, min, max)
+        lbl.Text = label .. ": " .. (v % 1 == 0 and math.floor(v) or string.format("%.1f", v))
+        local r = (v - min) / (max - min)
+        fill.Size = UDim2.new(r, 0, 1, 0)
+        th.Position = UDim2.new(r, 0, 0.5, 0)
+        cb(v)
+    end
+    bar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true
+            local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            set(min + (max - min) * r)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local r = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            set(min + (max - min) * r)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = false
+        end
+    end)
+end
+
+makeSlider("Tốc độ bay", 10, 250, 50, function(v) Config.FlySpeed = math.floor(v) end)
+makeSlider("Cắt từ", 0, 10, 4, function(v) Config.SkipStart = v end)
+makeSlider("Nhảy tới", 0, 15, 9.8, function(v) Config.SkipEnd = v end)
+makeSlider("Tổng dài", 1, 20, 10.8, function(v) Config.TotalDuration = v end)
+makeSlider("Tốc anim", 0.1, 3, 1, function(v)
+    Config.AnimSpeed = v
+    if State.AnimTrack then
+        pcall(function() State.AnimTrack:AdjustSpeed(v) end)
+    end
+end)
+
+-- Hướng bay
+local dirLabel = Instance.new("TextLabel")
+dirLabel.Size = UDim2.new(1, -10, 0, 20)
+dirLabel.BackgroundTransparency = 1
+dirLabel.Text = "Hướng bay:"
+dirLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+dirLabel.Font = Enum.Font.GothamBold
+dirLabel.TextSize = 11
+dirLabel.TextXAlignment = Enum.TextXAlignment.Left
+dirLabel.Parent = scroll
+
+local dirFrame = Instance.new("Frame")
+dirFrame.Size = UDim2.new(1, -10, 0, 35)
+dirFrame.BackgroundTransparency = 1
+dirFrame.Parent = scroll
+
+local camBtn = Instance.new("TextButton")
+camBtn.Size = UDim2.new(0.5, -3, 1, 0)
+camBtn.Position = UDim2.new(0, 0, 0, 0)
+camBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+camBtn.Text = "📷 Camera"
+camBtn.TextColor3 = Color3.new(1, 1, 1)
+camBtn.Font = Enum.Font.GothamBold
+camBtn.TextSize = 10
+camBtn.AutoButtonColor = false
+camBtn.Parent = dirFrame
+Instance.new("UICorner", camBtn).CornerRadius = UDim.new(0, 6)
+
+local charBtn = Instance.new("TextButton")
+charBtn.Size = UDim2.new(0.5, -3, 1, 0)
+charBtn.Position = UDim2.new(0.5, 3, 0, 0)
+charBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+charBtn.Text = "🧍 Nhân vật"
+charBtn.TextColor3 = Color3.new(1, 1, 1)
+charBtn.Font = Enum.Font.GothamBold
+charBtn.TextSize = 10
+charBtn.AutoButtonColor = false
+charBtn.Parent = dirFrame
+Instance.new("UICorner", charBtn).CornerRadius = UDim.new(0, 6)
+
+local function updateDirButtons()
+    if Config.FlyDirection == "Camera" then
+        camBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        charBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    else
+        camBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        charBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+    end
+end
+
+camBtn.MouseButton1Click:Connect(function()
+    Config.FlyDirection = "Camera"
+    updateDirButtons()
+end)
+
+charBtn.MouseButton1Click:Connect(function()
+    Config.FlyDirection = "Character"
+    updateDirButtons()
+end)
+
+updateDirButtons()
+
+-- Shift Lock toggle
+local shiftBtn = Instance.new("TextButton")
+shiftBtn.Size = UDim2.new(1, -10, 0, 30)
+shiftBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+shiftBtn.Text = "🔒 Shift Lock: ON"
+shiftBtn.TextColor3 = Color3.new(1, 1, 1)
+shiftBtn.Font = Enum.Font.GothamBold
+shiftBtn.TextSize = 11
+shiftBtn.AutoButtonColor = false
+shiftBtn.Parent = scroll
+Instance.new("UICorner", shiftBtn).CornerRadius = UDim.new(0, 6)
+
+shiftBtn.MouseButton1Click:Connect(function()
+    Config.ShiftLock = not Config.ShiftLock
+    if Config.ShiftLock then
+        shiftBtn.Text = "🔒 Shift Lock: ON"
+        shiftBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
+        applyShiftLock()
+    else
+        shiftBtn.Text = "🔓 Shift Lock: OFF"
+        shiftBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        player.CameraMode = Enum.CameraMode.Classic
+        local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if h then h.CameraOffset = Vector3.new(0, 0, 0) end
+    end
+end)
+
+settingBtn.MouseButton1Click:Connect(function()
+    menu.Visible = not menu.Visible
+end)
+
+-- Drag container
+local cDrag, cs_, cp_
+container.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = true
+        cs_ = i.Position
+        cp_ = container.Position
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if not cDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local d = i.Position - cs_
+        container.Position = UDim2.new(cp_.X.Scale, cp_.X.Offset + d.X, cp_.Y.Scale, cp_.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = false
+    end
+end)
+
+-- Drag menu
+local mDrag, ms_, mp_
+title.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInpu
+i.UserInputType == Enum.UserInputType.Touch then
+        mDrag = true
+        ms_ = i.Position
+        mp_ = menu.Position
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if not mDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local d = i.Position - ms_
+        menu.Position = UDim2.new(mp_.X.Scale, mp_.X.Offset + d.X, mp_.Y.Scale, mp_.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        mDrag = false
+    end
+end)
+
+notify("✈️ Fly GUI", "Đã load! Bấm F để bay")
