@@ -79,50 +79,52 @@ end)
 task.wait(0.5)
 applyShiftLock()
 
--- ========== ANIMATION ==========
-local function playCutAnim(animData)
-    if not animData or not animData.id or animData.id == 0 then return end
+local function playCutAnim(animID)
+    if not animID or animID == 0 then return end
     local animator = hum:FindFirstChildOfClass("Animator")
     if not animator then
         animator = Instance.new("Animator")
         animator.Parent = hum
     end
+    
+    -- Dừng track cũ
     if State.AnimTrack then
         pcall(function() State.AnimTrack:Stop(0.1) end)
         State.AnimTrack = nil
     end
+    
+    -- ✅ RESOLVE ID QUA GETOBJECTS
+    local animId = "rbxassetid://" .. tostring(animID)
+    local ok, result = pcall(function() return game:GetObjects(animId) end)
+    if ok and result and #result > 0 and result[1]:IsA("Animation") then
+        animId = result[1].AnimationId
+    end
+    
     local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://" .. tostring(animData.id)
-    local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
-    if not ok or not track then return end
+    anim.AnimationId = animId
+    
+    -- ✅ pcall bọc LoadAnimation
+    local ok2, track = pcall(function() return animator:LoadAnimation(anim) end)
+    if not ok2 or not track then return end
+    if track.Length <= 0 then return end
+    
     track.Priority = Enum.AnimationPriority.Action4
     track.Looped = false
-    track:Play(0.1)
+    pcall(function() track:Play(0) end)
     State.AnimTrack = track
-    
-    local skipStart = animData.skipStart or 0
-    local skipEnd = animData.skipEnd or 0
-    local total = animData.total or track.Length
     
     task.spawn(function()
         while State.AnimTrack == track and State.Flying do
-            task.wait(skipStart)
+            task.wait(Config.SkipStart)
             if State.AnimTrack ~= track or not State.Flying then break end
-            track.TimePosition = skipEnd
+            track.TimePosition = Config.SkipEnd
             task.wait()
-            local remaining = (total - skipEnd) / Config.AnimSpeed
+            local remaining = (Config.TotalDuration - Config.SkipEnd) / Config.AnimSpeed
             task.wait(remaining)
             if State.AnimTrack ~= track or not State.Flying then break end
             track:Play(0.1)
         end
     end)
-end
-
-local function stopAnim()
-    if State.AnimTrack then
-        pcall(function() State.AnimTrack:Stop(0.2) end)
-        State.AnimTrack = nil
-    end
 end
 
 -- ========== FLY ==========
