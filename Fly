@@ -15,11 +15,11 @@ local Config = {
     DashDistance = 30,
     
     -- 🎬 ANIMATION ID
-    FlyAnimID = 119026808107564,
-    NormalAnimID = 0,
+    FlyAnimID = 102256275785620,
+    NormalAnimID = 102256275785620,
     DashAnimID = 0,
     HoverAnimID = 0,
-    SpeedFlyAnimID = 0,
+    SpeedFlyAnimID = 83573219882155,
     FastAnimID = 0,
     
     SkipStart = 4,
