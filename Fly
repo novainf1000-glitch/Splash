@@ -1,4 +1,4 @@
---[[ GUI FLY - Style theo ảnh ]]
+--[[ GUI FLY - Mỗi mode cắt riêng ]]
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -14,23 +14,14 @@ local Config = {
     HoverHeight = 4,
     DashDistance = 30,
     
-    -- 🎬 ANIMATION ID
-    FlyAnimID = 102256275785620,
-    NormalAnimID = 102256275785620,
-    DashAnimID = 120732463359559,
-    HoverAnimID = 0,
-    SpeedFlyAnimID = 83573219882155,
-    FastAnimID = 0,
-    
-    local Config = {
-    -- 🎬 Animation + cắt riêng cho từng mode
+    -- 🎬 ANIMATION với cắt riêng cho từng mode
     NormalAnim = { id = 102256275785620, skipStart = 0, skipEnd = 0, total = 99 },
     DashAnim   = { id = 120732463359559, skipStart = 2, skipEnd = 5,   total = 6   },
-    HoverAnim  = { id = 222222222222222, skipStart = 0, skipEnd = 3,   total = 4   },
-    SpeedAnim  = { id = 83573219882155, skipStart = 0, skipEnd = 0,   total = 3   },
-    FastAnim   = { id = 444444444444444, skipStart = 0, skipEnd = 2,   total = 3   },
-}
+    HoverAnim  = { id = 0,               skipStart = 0, skipEnd = 3,   total = 4   },
+    SpeedAnim  = { id = 83573219882155,  skipStart = 0, skipEnd = 0,   total = 3   },
+    FastAnim   = { id = 0,               skipStart = 0, skipEnd = 2,   total = 3   },
     
+    AnimSpeed = 1,
     FlyDirection = "Character",
     ShiftLock = true,
 }
@@ -49,20 +40,6 @@ local State = {
 local char = player.Character or player.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 local root = char:WaitForChild("HumanoidRootPart")
-
-player.CharacterAdded:Connect(function(c)
-    char = c
-    hum = c:WaitForChild("Humanoid")
-    root = c:WaitForChild("HumanoidRootPart")
-    State.Flying = false
-    State.Mode = "None"
-    State.SpeedUpTime = nil
-    if State.FlyBV then State.FlyBV:Destroy() State.FlyBV = nil end
-    if State.FlyBG then State.FlyBG:Destroy() State.FlyBG = nil end
-    State.AnimTrack = nil
-    task.wait(0.5)
-    applyShiftLock()
-end)
 
 -- ========== THÔNG BÁO ==========
 function notify(title, text)
@@ -85,13 +62,26 @@ function applyShiftLock()
     player.CameraMode = Enum.CameraMode.LockFirstPerson
 end
 
--- Áp dụng ban đầu
+player.CharacterAdded:Connect(function(c)
+    char = c
+    hum = c:WaitForChild("Humanoid")
+    root = c:WaitForChild("HumanoidRootPart")
+    State.Flying = false
+    State.Mode = "None"
+    State.SpeedUpTime = nil
+    if State.FlyBV then State.FlyBV:Destroy() State.FlyBV = nil end
+    if State.FlyBG then State.FlyBG:Destroy() State.FlyBG = nil end
+    State.AnimTrack = nil
+    task.wait(0.5)
+    applyShiftLock()
+end)
+
 task.wait(0.5)
 applyShiftLock()
 
 -- ========== ANIMATION ==========
-local function playCutAnim(animID)
-    if not animID or animID == 0 then return end
+local function playCutAnim(animData)
+    if not animData or not animData.id or animData.id == 0 then return end
     local animator = hum:FindFirstChildOfClass("Animator")
     if not animator then
         animator = Instance.new("Animator")
@@ -102,20 +92,25 @@ local function playCutAnim(animID)
         State.AnimTrack = nil
     end
     local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://" .. tostring(animID)
+    anim.AnimationId = "rbxassetid://" .. tostring(animData.id)
     local ok, track = pcall(function() return animator:LoadAnimation(anim) end)
     if not ok or not track then return end
     track.Priority = Enum.AnimationPriority.Action4
     track.Looped = false
     track:Play(0.1)
     State.AnimTrack = track
+    
+    local skipStart = animData.skipStart or 0
+    local skipEnd = animData.skipEnd or 0
+    local total = animData.total or track.Length
+    
     task.spawn(function()
         while State.AnimTrack == track and State.Flying do
-            task.wait(Config.SkipStart)
+            task.wait(skipStart)
             if State.AnimTrack ~= track or not State.Flying then break end
-            track.TimePosition = Config.SkipEnd
+            track.TimePosition = skipEnd
             task.wait()
-            local remaining = (Config.TotalDuration - Config.SkipEnd) / Config.AnimSpeed
+            local remaining = (total - skipEnd) / Config.AnimSpeed
             task.wait(remaining)
             if State.AnimTrack ~= track or not State.Flying then break end
             track:Play(0.1)
@@ -153,19 +148,16 @@ local function startFly(mode)
     bg.Parent = root
     State.FlyBG = bg
     
-    local animID = Config.NormalAnimID
+    local animData = Config.NormalAnim
     if State.Mode == "Dash" then
-        animID = Config.DashAnimID
+        animData = Config.DashAnim
     elseif State.Mode == "Hover" then
-        animID = Config.HoverAnimID
+        animData = Config.HoverAnim
     elseif State.Mode == "SpeedFly" then
-        animID = Config.SpeedFlyAnimID
-    end
-    if animID == 0 then
-        animID = Config.FlyAnimID
+        animData = Config.SpeedAnim
     end
     
-    playCutAnim(animID)
+    playCutAnim(animData)
     notify("✈️", "Fly: " .. State.Mode)
 end
 
@@ -257,7 +249,6 @@ sg.ResetOnSpawn = false
 sg.IgnoreGuiInset = true
 sg.Parent = CoreGui
 
--- Nút Settings ⚙️
 local settingBtn = Instance.new("TextButton")
 settingBtn.Size = UDim2.new(0, 45, 0, 45)
 settingBtn.Position = UDim2.new(0, 15, 0, 100)
@@ -271,12 +262,6 @@ settingBtn.AutoButtonColor = false
 settingBtn.Parent = sg
 Instance.new("UICorner", settingBtn).CornerRadius = UDim.new(0, 10)
 
-local settingStroke = Instance.new("UIStroke")
-settingStroke.Color = Color3.fromRGB(60, 60, 60)
-settingStroke.Thickness = 2
-settingStroke.Parent = settingBtn
-
--- Container nút (bên trái, dọc)
 local container = Instance.new("Frame")
 container.Name = "BtnContainer"
 container.Size = UDim2.new(0, 130, 0, 200)
@@ -287,12 +272,6 @@ container.BorderSizePixel = 0
 container.Active = true
 container.Parent = sg
 Instance.new("UICorner", container).CornerRadius = UDim.new(0, 12)
-
-local containerStroke = Instance.new("UIStroke")
-containerStroke.Color = Color3.fromRGB(100, 100, 200)
-containerStroke.Thickness = 1.5
-containerStroke.Transparency = 0.3
-containerStroke.Parent = container
 
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 5)
@@ -314,7 +293,6 @@ local function updateContainerSize()
 end
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateContainerSize)
 
--- Nút tạo button
 local allBtns = {}
 local function createBtn(name, mode, icon, color)
     color = color or Color3.fromRGB(30, 30, 50)
@@ -387,11 +365,6 @@ menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = sg
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 12)
-
-local menuStroke = Instance.new("UIStroke")
-menuStroke.Color = Color3.fromRGB(100, 100, 200)
-menuStroke.Thickness = 1.5
-menuStroke.Parent = menu
 
 local title = Instance.new("TextButton")
 title.Size = UDim2.new(1, 0, 0, 35)
@@ -489,9 +462,6 @@ local function makeSlider(label, min, max, def, cb)
 end
 
 makeSlider("Tốc độ bay", 10, 250, 50, function(v) Config.FlySpeed = math.floor(v) end)
-makeSlider("Cắt từ", 0, 10, 4, function(v) Config.SkipStart = v end)
-makeSlider("Nhảy tới", 0, 15, 9.8, function(v) Config.SkipEnd = v end)
-makeSlider("Tổng dài", 1, 20, 10.8, function(v) Config.TotalDuration = v end)
 makeSlider("Tốc anim", 0.1, 3, 1, function(v)
     Config.AnimSpeed = v
     if State.AnimTrack then
@@ -499,7 +469,6 @@ makeSlider("Tốc anim", 0.1, 3, 1, function(v)
     end
 end)
 
--- Hướng bay
 local dirLabel = Instance.new("TextLabel")
 dirLabel.Size = UDim2.new(1, -10, 0, 20)
 dirLabel.BackgroundTransparency = 1
@@ -558,10 +527,8 @@ charBtn.MouseButton1Click:Connect(function()
     Config.FlyDirection = "Character"
     updateDirButtons()
 end)
-
 updateDirButtons()
 
--- Shift Lock toggle
 local shiftBtn = Instance.new("TextButton")
 shiftBtn.Size = UDim2.new(1, -10, 0, 30)
 shiftBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 180)
@@ -617,8 +584,44 @@ end)
 -- Drag menu
 local mDrag, ms_, mp_
 title.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInpu
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        mDrag = true
+        ms_ = i.Position
+        mp_ = menu.Position
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if not mDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local d = i.Position - ms_
+        menu.Position = UDim2.new(mp_.X.Scale, mp_.X.Offset + d.X, mp_.Y.Scale, mp_.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or 
 i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = true
+        cs_ = i.Position
+        cp_ = container.Position
+    end
+end)
+UIS.InputChanged:Connect(function(i)
+    if not cDrag then return end
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        local d = i.Position - cs_
+        container.Position = UDim2.new(cp_.X.Scale, cp_.X.Offset + d.X, cp_.Y.Scale, cp_.Y.Offset + d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        cDrag = false
+    end
+end)
+
+-- Drag menu
+local mDrag, ms_, mp_
+title.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
         mDrag = true
         ms_ = i.Position
         mp_ = menu.Position
@@ -638,3 +641,4 @@ UIS.InputEnded:Connect(function(i)
 end)
 
 notify("✈️ Fly GUI", "Đã load! Bấm F để bay")
+print("✅ Fly GUI loaded - mỗi mode cắt riêng")
