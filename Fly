@@ -50,81 +50,51 @@ function notify(title, text)
     end)
 end
 
--- ========== SHIFT LOCK ==========
-function applyShiftLock()
-    if not Config.ShiftLock then return end
-    local c = player.Character
-    if not c then return end
-    local h = c:FindFirstChildOfClass("Humanoid")
-    if h then
-        h.CameraOffset = Vector3.new(1.75, 0.5, 0)
+local function playAnim(id)
+    if not hum or not hum.Parent then return end
+    if CurrentTrack then
+        pcall(function() CurrentTrack:Stop(0) end)
+        CurrentTrack = nil
     end
-    player.CameraMode = Enum.CameraMode.LockFirstPerson
-end
-
-player.CharacterAdded:Connect(function(c)
-    char = c
-    hum = c:WaitForChild("Humanoid")
-    root = c:WaitForChild("HumanoidRootPart")
-    State.Flying = false
-    State.Mode = "None"
-    State.SpeedUpTime = nil
-    if State.FlyBV then State.FlyBV:Destroy() State.FlyBV = nil end
-    if State.FlyBG then State.FlyBG:Destroy() State.FlyBG = nil end
-    State.AnimTrack = nil
-    task.wait(0.5)
-    applyShiftLock()
-end)
-
-task.wait(0.5)
-applyShiftLock()
-
-local function playCutAnim(animID)
-    if not animID or animID == 0 then return end
+    
     local animator = hum:FindFirstChildOfClass("Animator")
     if not animator then
         animator = Instance.new("Animator")
         animator.Parent = hum
     end
     
-    -- Dừng track cũ
-    if State.AnimTrack then
-        pcall(function() State.AnimTrack:Stop(0.1) end)
-        State.AnimTrack = nil
-    end
+    pcall(function()
+        for _, t in pairs(animator:GetPlayingAnimationTracks()) do
+            t:Stop(0)
+        end
+    end)
     
-    -- ✅ RESOLVE ID QUA GETOBJECTS
-    local animId = "rbxassetid://" .. tostring(animID)
+    -- ✅ RESOLVE ID
+    local animId = "rbxassetid://" .. tostring(id)
     local ok, result = pcall(function() return game:GetObjects(animId) end)
     if ok and result and #result > 0 and result[1]:IsA("Animation") then
         animId = result[1].AnimationId
+        print("✅ Resolve:", id, "→", animId)
+        
+        -- ✅ CHỜ 0.5-1 GIÂY CHO SERVER
+        task.wait(1)
     end
     
+    -- ✅ LOAD
     local anim = Instance.new("Animation")
     anim.AnimationId = animId
     
-    -- ✅ pcall bọc LoadAnimation
     local ok2, track = pcall(function() return animator:LoadAnimation(anim) end)
-    if not ok2 or not track then return end
-    if track.Length <= 0 then return end
+    if not ok2 or not track or track.Length <= 0 then
+        print("❌ Load fail")
+        return
+    end
     
+    print("✅ Length:", track.Length)
     track.Priority = Enum.AnimationPriority.Action4
-    track.Looped = false
-    pcall(function() track:Play(0) end)
-    State.AnimTrack = track
-    
-    task.spawn(function()
-        while State.AnimTrack == track and State.Flying do
-            task.wait(Config.SkipStart)
-            if State.AnimTrack ~= track or not State.Flying then break end
-            track.TimePosition = Config.SkipEnd
-            task.wait()
-            local remaining = (Config.TotalDuration - Config.SkipEnd) / Config.AnimSpeed
-            task.wait(remaining)
-            if State.AnimTrack ~= track or not State.Flying then break end
-            track:Play(0.1)
-        end
-    end)
+    track.Looped = true
+    track:Play(0.1)
+    CurrentTrack = track
 end
 
 -- ========== FLY ==========
